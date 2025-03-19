@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"football_tgbot/types"
 	"io"
 	"log"
 	"net/http"
@@ -13,25 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-type Area struct {
-	Name string `json:"name"`
-	Code string `json:"code"`
-}
-
-type Team struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	ShortName string `json:"shortName"`
-	Tla       string `json:"tla"`
-	CrestURL  string `json:"crestUrl"`
-	Area      Area   `json:"area"`
-	Founded   int    `json:"founded"`
-}
-
-type TeamsResponse struct {
-	Teams []Team `json:"teams"`
-}
 
 func connectToMongoDB(uri string) (*mongo.Client, error) {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
@@ -47,7 +29,17 @@ func connectToMongoDB(uri string) (*mongo.Client, error) {
 	return client, nil
 }
 
-func getTeamsFromAPI(apiKey, leagueCode string) ([]Team, error) {
+func saveTeamsToMongoDB(collection *mongo.Collection, teams []types.Team) error {
+	var documents []interface{}
+	for _, team := range teams {
+		documents = append(documents, team)
+	}
+
+	_, err := collection.InsertMany(context.TODO(), documents)
+	return err
+}
+
+func getTeamsFromAPI(apiKey, leagueCode string) ([]types.Team, error) {
 	url := fmt.Sprintf("https://api.football-data.org/v4/competitions/%s/teams", leagueCode)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
@@ -67,23 +59,13 @@ func getTeamsFromAPI(apiKey, leagueCode string) ([]Team, error) {
 		return nil, err
 	}
 
-	var teamsResponse TeamsResponse
+	var teamsResponse types.TeamsResponse
 	err = json.Unmarshal(body, &teamsResponse)
 	if err != nil {
 		return nil, err
 	}
 
 	return teamsResponse.Teams, nil
-}
-
-func saveTeamsToMongoDB(collection *mongo.Collection, teams []Team) error {
-	var documents []interface{}
-	for _, team := range teams {
-		documents = append(documents, team)
-	}
-
-	_, err := collection.InsertMany(context.TODO(), documents)
-	return err
 }
 
 func main() {
@@ -95,6 +77,10 @@ func main() {
 
 	// Получение значений из .env
 	apiKey := os.Getenv("FOOTBALL_DATA_API_KEY")
+	if apiKey == "" {
+		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
+	}
+
 	mongoURI := os.Getenv("MONGODB_URI")
 
 	// Подключение к MongoDB
@@ -102,6 +88,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer client.Disconnect(context.TODO())
 
 	// Лиги и их коды
@@ -133,5 +120,6 @@ func main() {
 		}
 
 		fmt.Printf("Successfully saved %d teams for %s\n", len(teams), leagueName)
+
 	}
 }

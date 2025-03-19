@@ -5,8 +5,11 @@ build:
 run: build
 	@./bin/api.exe
 
-seed: 
-	@go run scripts/seed.go
+seedteams: 
+	@go run scripts/seed_teams.go
+
+seedmatches: 
+	@go run scripts/seed_matches.go
 
 test:
 	@go test -v ./...
