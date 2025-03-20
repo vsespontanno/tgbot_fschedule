@@ -30,8 +30,8 @@ func main() {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
 
-	today := time.Now().Format("2006-01-02")
-	tomorrow := time.Now().Add(24 * time.Hour).Format("2006-01-02")
+	today := time.Now().Add(24 * time.Hour * 6).Format("2006-01-02")
+	tomorrow := time.Now().Add(24 * time.Hour * 7).Format("2006-01-02")
 	mongoURI := os.Getenv("MONGODB_URI")
 
 	// Подключение к MongoDB

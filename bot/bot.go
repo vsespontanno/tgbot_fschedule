@@ -77,6 +77,8 @@ func Start() error {
 				handleHelpCommand(bot, update.Message)
 			case "leagues":
 				handleLeaguesCommand(bot, update.Message)
+			case "schedule":
+				handleScheduleCommand(bot, update.Message)
 			default:
 				handleUnknownCommand(bot, update.Message)
 			}
@@ -106,6 +108,47 @@ func connectToMongoDB(uri string) (*mongo.Client, error) {
 	return client, nil
 }
 
+// handleScheduleCommand обрабатывает команду /schedule
+func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	// Получаем URI MongoDB из переменных окружения
+	mongoURI := os.Getenv("MONGODB_URI")
+	if mongoURI == "" {
+		return fmt.Errorf("MONGODB_URI is not set")
+	}
+
+	// Подключаемся к MongoDB
+	client, err := connectToMongoDB(mongoURI)
+	if err != nil {
+		return fmt.Errorf("failed to connect to MongoDB: %v", err)
+	}
+	defer client.Disconnect(context.TODO())
+
+	// Получаем матчи из MongoDB
+	matches, err := getMatchesFromMongoDB(client, "matches")
+	if err != nil {
+		return fmt.Errorf("failed to get matches from MongoDB: %v", err)
+	}
+
+	// Формируем ответ
+	response := "Расписание матчей на сегодня:\n"
+	if len(matches) == 0 {
+		response = "На сегодня матчей не запланировано.\n"
+	} else {
+		for _, match := range matches {
+			response += fmt.Sprintf("- %s vs %s (%s)\n", match.HomeTeam.Name, match.AwayTeam.Name, match.UTCDate[0:10])
+		}
+	}
+
+	// Отправляем ответ
+	msg := tgbotapi.NewMessage(message.Chat.ID, response)
+	_, err = bot.Send(msg)
+	if err != nil {
+		return fmt.Errorf("failed to send message: %v", err)
+	}
+
+	return nil
+}
+
 // handleStartCommand обрабатывает команду /start
 func handleStartCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Привет! Я бот для футбольной статистики. Используй /help, чтобы узнать доступные команды.")
@@ -117,7 +160,8 @@ func handleHelpCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	helpText := `Доступные команды:
 	/start - Начать работу с ботом
 	/help - Получить список команд
-	/leagues - Показать список футбольных лиг`
+	/leagues - Показать список футбольных лиг
+	/schedule - Показать расписание матчей`
 	msg := tgbotapi.NewMessage(message.Chat.ID, helpText)
 	bot.Send(msg)
 }
@@ -196,4 +240,21 @@ func getTeamsFromMongoDB(client *mongo.Client, collectionName string) ([]types.T
 	}
 
 	return teams, nil
+}
+
+func getMatchesFromMongoDB(client *mongo.Client, collectionName string) ([]types.Match, error) {
+	collection := client.Database("football").Collection(collectionName)
+
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("error finding matches: %v", err)
+	}
+	defer cursor.Close(context.TODO())
+
+	var matches []types.Match
+	if err := cursor.All(context.TODO(), &matches); err != nil {
+		return nil, fmt.Errorf("error decoding matches: %v", err)
+	}
+
+	return matches, nil
 }
