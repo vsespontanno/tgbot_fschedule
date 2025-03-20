@@ -44,7 +44,6 @@ func getTeamsFromAPI(apiKey, leagueCode string) ([]types.Team, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		S
 		return nil, err
 	}
 
