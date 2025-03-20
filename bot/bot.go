@@ -3,13 +3,12 @@ package bot
 import (
 	"context"
 	"fmt"
-	"football_tgbot/types"
+	"football_tgbot/db"
 	"log"
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -59,6 +58,10 @@ func Start() error {
 	}
 	defer client.Disconnect(context.TODO())
 
+	// Инициализируем хранилище данных
+	dbName := "football"
+	store := db.NewMongoDBMatchesStore(client, dbName)
+
 	// Создаем канал для получения обновлений от Telegram
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
@@ -78,7 +81,7 @@ func Start() error {
 			case "leagues":
 				handleLeaguesCommand(bot, update.Message)
 			case "schedule":
-				handleScheduleCommand(bot, update.Message)
+				handleScheduleCommand(bot, update.Message, store)
 			default:
 				handleUnknownCommand(bot, update.Message)
 			}
@@ -86,7 +89,7 @@ func Start() error {
 
 		// Если обновление содержит callback (нажатие на кнопку)
 		if update.CallbackQuery != nil {
-			handleCallbackQuery(bot, update.CallbackQuery, client)
+			handleCallbackQuery(bot, update.CallbackQuery, store)
 		}
 	}
 
@@ -109,24 +112,10 @@ func connectToMongoDB(uri string) (*mongo.Client, error) {
 }
 
 // handleScheduleCommand обрабатывает команду /schedule
-func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
-	// Получаем URI MongoDB из переменных окружения
-	mongoURI := os.Getenv("MONGODB_URI")
-	if mongoURI == "" {
-		return fmt.Errorf("MONGODB_URI is not set")
-	}
-
-	// Подключаемся к MongoDB
-	client, err := connectToMongoDB(mongoURI)
+func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.MatchesStore) error {
+	matches, err := store.GetMatches(context.Background(), "matches")
 	if err != nil {
-		return fmt.Errorf("failed to connect to MongoDB: %v", err)
-	}
-	defer client.Disconnect(context.TODO())
-
-	// Получаем матчи из MongoDB
-	matches, err := getMatchesFromMongoDB(client, "matches")
-	if err != nil {
-		return fmt.Errorf("failed to get matches from MongoDB: %v", err)
+		return fmt.Errorf("failed to get matches: %v", err)
 	}
 
 	// Формируем ответ
@@ -181,7 +170,7 @@ func handleUnknownCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 }
 
 // handleCallbackQuery обрабатывает нажатие на кнопку
-func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQuery, client *mongo.Client) {
+func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQuery, store db.MatchesStore) {
 	// Получаем данные из callback (название лиги)
 	league := callbackQuery.Data
 
@@ -202,9 +191,9 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 		return
 	}
 
-	teams, err := getTeamsFromMongoDB(client, collectionName)
+	teams, err := store.GetTeams(context.Background(), collectionName)
 	if err != nil {
-		log.Printf("Error getting teams from MongoDB: %v", err)
+		log.Printf("Error getting teams: %v", err)
 		msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, "Произошла ошибка при получении данных.")
 		bot.Send(msg)
 		return
@@ -223,38 +212,4 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 	// Подтверждаем обработку callback, т.к прекращаем тот противный белый какой-то пал вокруг кнопки
 	callback := tgbotapi.NewCallback(callbackQuery.ID, "")
 	bot.Send(callback)
-}
-
-func getTeamsFromMongoDB(client *mongo.Client, collectionName string) ([]types.Team, error) {
-	collection := client.Database("football").Collection(collectionName)
-
-	cursor, err := collection.Find(context.TODO(), bson.M{})
-	if err != nil {
-		return nil, fmt.Errorf("error finding teams: %v", err)
-	}
-	defer cursor.Close(context.TODO())
-
-	var teams []types.Team
-	if err := cursor.All(context.TODO(), &teams); err != nil {
-		return nil, fmt.Errorf("error decoding teams: %v", err)
-	}
-
-	return teams, nil
-}
-
-func getMatchesFromMongoDB(client *mongo.Client, collectionName string) ([]types.Match, error) {
-	collection := client.Database("football").Collection(collectionName)
-
-	cursor, err := collection.Find(context.TODO(), bson.M{})
-	if err != nil {
-		return nil, fmt.Errorf("error finding matches: %v", err)
-	}
-	defer cursor.Close(context.TODO())
-
-	var matches []types.Match
-	if err := cursor.All(context.TODO(), &matches); err != nil {
-		return nil, fmt.Errorf("error decoding matches: %v", err)
-	}
-
-	return matches, nil
 }
