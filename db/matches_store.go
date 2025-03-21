@@ -13,6 +13,7 @@ import (
 type MatchesStore interface {
 	GetTeams(ctx context.Context, collectionName string) ([]types.Team, error)
 	GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
+	GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error) // Добавлен GetStandings
 }
 
 // MongoDBMatchesStore is a concrete implementation of MatchesStore for MongoDB.
@@ -60,4 +61,12 @@ func (m *MongoDBMatchesStore) GetMatches(ctx context.Context, collectionName str
 		return nil, err
 	}
 	return matches, nil
+}
+
+func (m *MongoDBMatchesStore) GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error) {
+	var standings []types.Standing
+	if err := m.findDocuments(ctx, collectionName, &standings); err != nil {
+		return nil, err
+	}
+	return standings, nil
 }

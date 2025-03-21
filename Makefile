@@ -11,5 +11,8 @@ seedteams:
 seedmatches: 
 	@go run scripts/seed_matches.go
 
+seedstandings: 
+	@go run scripts/seed_standings.go
+
 test:
 	@go test -v ./...

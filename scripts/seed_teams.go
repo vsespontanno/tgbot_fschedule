@@ -15,18 +15,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func connectToMongoDB(uri string) (*mongo.Client, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Connected to MongoDB!")
-	return client, nil
+var leagues = map[string]string{
+	"Ligue1":          "FL1",
+	"LaLiga":          "PD",
+	"PremierLeague":   "PL",
+	"Bundesliga":      "BL1",
+	"SerieA":          "SA",
+	"ChampionsLeague": "CL",
 }
 
 func saveTeamsToMongoDB(collection *mongo.Collection, teams []types.Team) error {
@@ -84,22 +79,12 @@ func main() {
 	mongoURI := os.Getenv("MONGODB_URI")
 
 	// Подключение к MongoDB
-	client, err := connectToMongoDB(mongoURI)
+	client, err := ConnectToMongoDB(mongoURI)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer client.Disconnect(context.TODO())
-
-	// Лиги и их коды
-	leagues := map[string]string{
-		"Ligue1":          "FL1",
-		"LaLiga":          "PD",
-		"PremierLeague":   "PL",
-		"Bundesliga":      "BL1",
-		"SerieA":          "SA",
-		"ChampionsLeague": "CL",
-	} // я люблю Машу !!!!!!!!!!!!! (с) Виталик (хозяин тимура)
 
 	// Для каждой лиги получаем команды и сохраняем в MongoDB
 	for leagueName, leagueCode := range leagues {
@@ -122,4 +107,18 @@ func main() {
 		fmt.Printf("Successfully saved %d teams for %s\n", len(teams), leagueName)
 
 	}
+}
+
+func connectToMongoDB(uri string) (*mongo.Client, error) {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+	if err != nil {
+		return nil, err
+	}
+
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("Connected to MongoDB!")
+	return client, nil
 }

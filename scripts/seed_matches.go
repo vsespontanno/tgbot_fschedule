@@ -14,7 +14,6 @@ import (
 	"github.com/joho/godotenv"
 
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -30,12 +29,12 @@ func main() {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
 
-	today := time.Now().Add(24 * time.Hour * 6).Format("2006-01-02")
-	tomorrow := time.Now().Add(24 * time.Hour * 7).Format("2006-01-02")
+	today := time.Now().Add(24 * time.Hour).Format("2006-01-02")
+	tomorrow := time.Now().Add(24 * time.Hour * 10).Format("2006-01-02")
 	mongoURI := os.Getenv("MONGODB_URI")
 
 	// Подключение к MongoDB
-	client, err := connectToMongoDB(mongoURI)
+	client, err := ConnectToMongoDB(mongoURI)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,18 +104,4 @@ func saveMatchesToMongoDB(client *mongo.Client, matches []types.Match, today str
 	}
 
 	return nil
-}
-
-func connectToMongoDB(uri string) (*mongo.Client, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Connected to MongoDB!")
-	return client, nil
 }
