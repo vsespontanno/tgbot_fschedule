@@ -3,28 +3,18 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"football_tgbot/handlers"
 	"football_tgbot/types"
+
 	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-var leagues = map[string]string{
-	"Ligue1":          "FL1",
-	"LaLiga":          "PD",
-	"PremierLeague":   "PL",
-	"Bundesliga":      "BL1",
-	"SerieA":          "SA",
-	"ChampionsLeague": "CL",
-}
 
 func getLeagueStandings(apiKey, leagueCode string) ([]types.Standing, error) {
 	url := fmt.Sprintf("https://api.football-data.org/v4/competitions/%s/standings", leagueCode)
@@ -58,23 +48,6 @@ func getLeagueStandings(apiKey, leagueCode string) ([]types.Standing, error) {
 	}
 	return nil, fmt.Errorf("no standings found for league code: %s", leagueCode)
 }
-
-// ... (остальной код файла seed_teams.go)
-// /home/matthew/tgbot_fschedule/scripts/seed_teams.go (или новый файл get_standings.go)
-
-// ... (существующие функции) ...
-
-func saveStandingsToMongoDB(collection *mongo.Collection, standings []types.Standing) error {
-	var documents []interface{}
-	for _, standing := range standings {
-		documents = append(documents, standing)
-	}
-
-	_, err := collection.InsertMany(context.TODO(), documents)
-	return err
-}
-
-// /home/matthew/tgbot_fschedule/scripts/seed_teams.go (или новый файл get_standings.go)
 
 func main() {
 	err := godotenv.Load()
@@ -113,7 +86,7 @@ func main() {
 
 		// Сохраняем таблицу лиги в отдельную коллекцию (опционально)
 		standingsCollection := client.Database("football").Collection(leagueName + "_standings")
-		err = saveStandingsToMongoDB(standingsCollection, standings)
+		err = handlers.SaveStandingsToMongoDB(standingsCollection, standings)
 		if err != nil {
 			log.Printf("Error saving standings for %s: %v\n", leagueName, err)
 			continue
@@ -121,18 +94,4 @@ func main() {
 
 		fmt.Printf("Successfully saved standings for %s\n", leagueName)
 	}
-}
-
-func connectToMongoDB(uri string) (*mongo.Client, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Connected to MongoDB!")
-	return client, nil
 }

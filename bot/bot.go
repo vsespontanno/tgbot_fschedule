@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 	"football_tgbot/db"
+	"football_tgbot/handlers"
 	"football_tgbot/types"
+	"image/color"
 	"log"
 	"os"
-	"sort"
 	"strings"
 
+	"github.com/fogleman/gg"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Создаем клавиатуру с кнопками лиг для команд
@@ -67,7 +67,7 @@ func Start() error {
 		return fmt.Errorf("MONGODB_URI is not set")
 	}
 
-	client, err := connectToMongoDB(mongoURI)
+	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		return fmt.Errorf("failed to connect to MongoDB: %v", err)
 	}
@@ -114,19 +114,6 @@ func Start() error {
 }
 
 // connectToMongoDB подключается к MongoDB
-func connectToMongoDB(uri string) (*mongo.Client, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
-	}
-
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Connected to MongoDB!")
-	return client, nil
-}
 
 // handleScheduleCommand обрабатывает команду /schedule
 func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.MatchesStore) error {
@@ -248,7 +235,7 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 		bot.Send(msg)
 	} else {
 		// Обработка запроса таблицы
-		standings, err := getStandingsFromDB(store, collectionName)
+		standings, err := handlers.GetStandingsFromDB(store, collectionName)
 		if err != nil {
 			log.Printf("Error getting standings: %v", err)
 			msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, "Произошла ошибка при получении данных.")
@@ -256,12 +243,35 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 			return
 		}
 
-		// Формируем ответ с таблицей
-		response := formatStandings(standings, collectionName)
+		// Генерируем изображение
+		imagePath := fmt.Sprintf("%s.png", collectionName)
+		err = generateTableImage(standings, imagePath)
+		if err != nil {
+			log.Printf("Error generating image: %v", err)
+			msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, "Произошла ошибка при генерации изображения.")
+			bot.Send(msg)
+			return
+		}
 
-		// Отправляем ответ
-		msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, response)
-		bot.Send(msg)
+		// Отправляем изображение
+		photoFile := tgbotapi.FilePath(imagePath)
+		if err != nil {
+			log.Printf("Error creating input file: %v", err)
+			msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, "Произошла ошибка при отправке изображения.")
+			bot.Send(msg)
+			return
+		}
+		photoMsg := tgbotapi.NewPhoto(callbackQuery.Message.Chat.ID, photoFile)
+		_, err = bot.Send(photoMsg)
+		if err != nil {
+			log.Printf("Error sending photo: %v", err)
+			msg := tgbotapi.NewMessage(callbackQuery.Message.Chat.ID, "Произошла ошибка при отправке изображения.")
+			bot.Send(msg)
+			return
+		}
+
+		// Удаляем временный файл
+		os.Remove(imagePath)
 	}
 
 	// Подтверждаем обработку callback, т.к прекращаем тот противный белый какой-то пал вокруг кнопки
@@ -269,39 +279,125 @@ func handleCallbackQuery(bot *tgbotapi.BotAPI, callbackQuery *tgbotapi.CallbackQ
 	bot.Send(callback)
 }
 
-// getStandingsFromDB получает таблицу лиги из MongoDB.
-func getStandingsFromDB(store db.MatchesStore, collectionName string) ([]types.Standing, error) {
-	// Получаем все команды из коллекции
-	var standings []types.Standing
-	var err error
-	standings, err = store.GetStandings(context.Background(), collectionName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get standings: %v", err)
-	}
-	return standings, nil
-}
+func generateTableImage(data []types.Standing, filename string) error {
+	const (
+		width        = 1200
+		height       = 600
+		padding      = 10
+		rowHeight    = 40
+		headerHeight = 50
+		fontSize     = 20
+		numCols      = 10
+	)
 
-// formatStandings форматирует таблицу лиги для отправки пользователю.
-func formatStandings(standings []types.Standing, collectionName string) string {
-	underscore := strings.Index(collectionName, "_")
-	if underscore != -1 {
-		collectionName = collectionName[:underscore]
-	}
-	// Проверяем, что таблица не пустаs
-	if len(standings) == 0 {
-		return fmt.Sprintf("Таблица %s пуста.", collectionName)
+	// Динамически определяем ширину столбцов
+	colWidths := []int{
+		50,  // #
+		300, // Команда
+		50,  // И
+		50,  // В
+		50,  // Н
+		50,  // П
+		50,  // ГЗ
+		50,  // ГП
+		50,  // РГ
+		50,  // О
 	}
 
-	// Сортируем таблицу по позиции
-	sort.Slice(standings, func(i, j int) bool {
-		return standings[i].Position < standings[j].Position
-	})
+	dc := gg.NewContext(width, height)
 
-	response := fmt.Sprintf("Таблица %s:\n", collectionName)
-	response += fmt.Sprintf("%-4s %-25s %-5s %-5s %-5s %-5s %-5s %-5s %-5s %-5s\n", "#", "Команда", "И", "В", "Н", "П", "ГЗ", "ГП", "РГ", "О")
-	for _, standing := range standings {
-		response += fmt.Sprintf("%-4d %-25s %-5d %-5d %-5d %-5d %-5d %-5d %-5d %-5d\n",
-			standing.Position, standing.Team.Name, standing.PlayedGames, standing.Won, standing.Draw, standing.Lost, standing.GoalsFor, standing.GoalsAgainst, standing.GoalDifference, standing.Points)
+	// Задаем фон
+	dc.SetColor(color.White)
+	dc.Clear()
+
+	// Задаем цвет текста
+	dc.SetColor(color.Black)
+
+	// Загружаем шрифт
+	if err := dc.LoadFontFace("/usr/share/fonts/noto/NotoSans-Regular.ttf", fontSize); err != nil {
+		fmt.Println("Error loading font:", err)
+		return err
 	}
-	return response
+
+	// Рисуем заголовок таблицы
+	dc.SetColor(color.RGBA{0, 0, 0, 255})
+	dc.DrawStringAnchored("Турнирная таблица", float64(width/2), float64(padding), 0.5, 0.5)
+
+	// Рисуем шапку таблицы
+	headers := []string{"#", "Команда", "И", "В", "Н", "П", "ГЗ", "ГП", "РГ", "О"}
+	x := padding
+	y := headerHeight + padding
+	dc.SetColor(color.RGBA{200, 200, 200, 255})
+	dc.DrawRectangle(0, float64(headerHeight), float64(width), float64(rowHeight))
+	dc.Fill()
+	dc.SetColor(color.Black)
+
+	for i, header := range headers {
+		dc.DrawStringAnchored(header, float64(x+colWidths[i]/2), float64(y), 0.5, 0.5)
+		x += colWidths[i]
+	}
+
+	// Рисуем таблицу
+	y += rowHeight
+	for i, row := range data {
+		x = padding
+		if i%2 == 1 {
+			dc.SetColor(color.RGBA{240, 240, 240, 255})
+			dc.DrawRectangle(0, float64(y-rowHeight/2), float64(width), float64(rowHeight))
+			dc.Fill()
+			dc.SetColor(color.Black)
+		}
+		cells := []string{
+			fmt.Sprintf("%d", row.Position),
+			row.Team.Name,
+			fmt.Sprintf("%d", row.PlayedGames),
+			fmt.Sprintf("%d", row.Won),
+			fmt.Sprintf("%d", row.Draw),
+			fmt.Sprintf("%d", row.Lost),
+			fmt.Sprintf("%d", row.GoalsFor),
+			fmt.Sprintf("%d", row.GoalsAgainst),
+			fmt.Sprintf("%d", row.GoalDifference),
+			fmt.Sprintf("%d", row.Points),
+		}
+		for j, cell := range cells {
+			// Обработка длинных названий команд
+			if j == 1 {
+				// Разбиваем длинное название на несколько строк
+				maxWidth := float64(colWidths[j]) - padding*2
+				words := strings.Fields(cell)
+				var lines []string
+				currentLine := ""
+				for _, word := range words {
+					testLine := currentLine
+					if currentLine != "" {
+						testLine += " "
+					}
+					testLine += word
+					w, _ := dc.MeasureString(testLine)
+					if w > maxWidth {
+						lines = append(lines, currentLine)
+						currentLine = word
+					} else {
+						currentLine = testLine
+					}
+				}
+				lines = append(lines, currentLine)
+				// Рисуем строки
+				for k, line := range lines {
+					dc.DrawStringAnchored(line, float64(x+colWidths[j]/2), float64(y)+float64(k*fontSize), 0.5, 0.5)
+				}
+				// Увеличиваем высоту строки, если название длинное
+				if len(lines) > 1 {
+					y += int(fontSize * (len(lines) - 1))
+				}
+			} else {
+				dc.DrawStringAnchored(cell, float64(x+colWidths[j]/2), float64(y), 0.5, 0.5)
+			}
+			x += colWidths[j]
+		}
+		y += rowHeight
+	}
+
+	// Сохраняем изображение
+	return dc.SavePNG(filename)
 }

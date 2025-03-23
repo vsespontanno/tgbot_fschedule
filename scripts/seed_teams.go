@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"football_tgbot/db"
 	"football_tgbot/types"
 	"io"
 	"log"
@@ -79,7 +80,7 @@ func main() {
 	mongoURI := os.Getenv("MONGODB_URI")
 
 	// Подключение к MongoDB
-	client, err := ConnectToMongoDB(mongoURI)
+	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		log.Fatal(err)
 	}
