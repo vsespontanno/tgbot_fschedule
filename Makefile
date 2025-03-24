@@ -14,5 +14,8 @@ seedmatches:
 seedstandings: 
 	@go run scripts/seed_standings.go
 
+drop: 
+	@go run scripts/drop_coll.go
+
 test:
 	@go test -v ./...

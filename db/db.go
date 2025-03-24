@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var leagues = map[string]string{
+var Leagues = map[string]string{
 	"Ligue1":          "FL1",
 	"LaLiga":          "PD",
 	"PremierLeague":   "PL",

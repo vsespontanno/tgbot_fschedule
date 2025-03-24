@@ -13,17 +13,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
-var leagues = map[string]string{
-	"Ligue1":          "FL1",
-	"LaLiga":          "PD",
-	"PremierLeague":   "PL",
-	"Bundesliga":      "BL1",
-	"SerieA":          "SA",
-	"ChampionsLeague": "CL",
-}
 
 func saveTeamsToMongoDB(collection *mongo.Collection, teams []types.Team) error {
 	var documents []interface{}
@@ -88,7 +78,7 @@ func main() {
 	defer client.Disconnect(context.TODO())
 
 	// Для каждой лиги получаем команды и сохраняем в MongoDB
-	for leagueName, leagueCode := range leagues {
+	for leagueName, leagueCode := range db.Leagues {
 		teams, err := getTeamsFromAPI(apiKey, leagueCode)
 		if err != nil {
 			log.Printf("Error getting teams for %s: %v\n", leagueName, err)
@@ -98,28 +88,32 @@ func main() {
 			log.Printf("No teams found for %s\n", leagueName)
 			continue
 		}
+		for i := range teams {
+			switch teams[i].Name {
+			case "Wolverhampton Wanderers FC":
+				teams[i].Name = "Wolverhampton FC"
+			case "FC Internazionale Milano":
+				teams[i].Name = "Inter"
+			case "Club Atlético de Madrid":
+				teams[i].Name = "AtLetico Madrid"
+			case "RCD Espanyol de Barcelona":
+				teams[i].Name = "Espanyol"
+			case "Rayo Vallecano de Madrid":
+				teams[i].Name = "Rayo Vallecano"
+			case "Real Betis Balompié":
+				teams[i].Name = "Real Betis"
+			case "Real Sociedad de Fútbol":
+				teams[i].Name = "Real Sociedad"
+			}
+		}
+
 		collection := client.Database("football").Collection(leagueName)
 		err = saveTeamsToMongoDB(collection, teams)
 		if err != nil {
 			log.Printf("Error saving teams for %s: %v\n", leagueName, err)
-			continue
 		}
 
 		fmt.Printf("Successfully saved %d teams for %s\n", len(teams), leagueName)
-
-	}
-}
-
-func connectToMongoDB(uri string) (*mongo.Client, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
-	if err != nil {
-		return nil, err
 	}
 
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("Connected to MongoDB!")
-	return client, nil
 }

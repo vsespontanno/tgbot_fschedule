@@ -10,9 +10,10 @@ import (
 )
 
 func GenerateTableImage(data []types.Standing, filename string) error {
+	// Константы
 	const (
-		width        = 1200
-		height       = 600
+		width        = 780
+		height       = 920
 		padding      = 10
 		rowHeight    = 40
 		headerHeight = 50
@@ -51,7 +52,7 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 
 	// Рисуем заголовок таблицы
 	dc.SetColor(color.RGBA{0, 0, 0, 255})
-	dc.DrawStringAnchored("Турнирная таблица", float64(width/2), float64(padding), 0.5, 0.5)
+	dc.DrawStringAnchored("Турнирная таблица", float64(width/2), float64(padding)+20, 0.5, 0.5)
 
 	// Рисуем шапку таблицы
 	headers := []string{"#", "Команда", "И", "В", "Н", "П", "ГЗ", "ГП", "РГ", "О"}

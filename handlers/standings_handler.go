@@ -33,7 +33,7 @@ func GetStandingsFromDB(store db.MatchesStore, collectionName string) ([]types.S
 }
 
 // formatStandings форматирует таблицу лиги для отправки пользователю.
-func GormatStandings(standings []types.Standing, collectionName string) string {
+func FormatStandings(standings []types.Standing, collectionName string) string {
 	underscore := strings.Index(collectionName, "_")
 	if underscore != -1 {
 		collectionName = collectionName[:underscore]
@@ -56,3 +56,27 @@ func GormatStandings(standings []types.Standing, collectionName string) string {
 	}
 	return response
 }
+
+// func GetStandingsFromDB(store db.MatchesStore, collectionName string) ([]types.Standing, uint8, error) {
+// 	var flag uint8
+// 	// Получаем все команды из коллекции
+// 	switch collectionName {
+// 	case "PL":
+// 		flag = 1
+// 	case "BL1":
+// 		flag = 2
+// 	case "FL1":
+// 		flag = 3
+// 	case "SA":
+// 		flag = 4
+// 	case "PD":
+// 		flag = 5
+// 	}
+// 	var standings []types.Standing
+// 	var err error
+// 	standings, err = store.GetStandings(context.Background(), collectionName)
+// 	if err != nil {
+// 		return nil, 0, fmt.Errorf("failed to get standings: %v", err)
+// 	}
+// 	return standings, flag, nil
+// }

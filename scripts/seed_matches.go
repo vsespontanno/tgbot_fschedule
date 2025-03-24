@@ -81,6 +81,42 @@ func getMatchesSchedule(apiKey string, today string, tomorrow string, client *ht
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
 	}
+	for i := range MatchesResponse.Matches {
+		switch MatchesResponse.Matches[i].HomeTeam.Name {
+		case "Wolverhampton Wanderers FC":
+			MatchesResponse.Matches[i].HomeTeam.Name = "Wolverhampton FC"
+		case "FC Internazionale Milano":
+			MatchesResponse.Matches[i].HomeTeam.Name = "Inter"
+		case "Club Atlético de Madrid":
+			MatchesResponse.Matches[i].HomeTeam.Name = "AtLetico Madrid"
+		case "RCD Espanyol de Barcelona":
+			MatchesResponse.Matches[i].HomeTeam.Name = "Espanyol"
+		case "Rayo Vallecano de Madrid":
+			MatchesResponse.Matches[i].HomeTeam.Name = "Rayo Vallecano"
+		case "Real Betis Balompié":
+			MatchesResponse.Matches[i].HomeTeam.Name = "Real Betis"
+		case "Real Sociedad de Fútbol":
+			MatchesResponse.Matches[i].HomeTeam.Name = "Real Sociedad"
+		}
+		// Corrected loop for AwayTeam
+		switch MatchesResponse.Matches[i].AwayTeam.Name {
+		case "Wolverhampton Wanderers FC":
+			MatchesResponse.Matches[i].AwayTeam.Name = "Wolverhampton FC"
+		case "FC Internazionale Milano":
+			MatchesResponse.Matches[i].AwayTeam.Name = "Inter"
+		case "Club Atlético de Madrid":
+			MatchesResponse.Matches[i].AwayTeam.Name = "AtLetico Madrid"
+		case "RCD Espanyol de Barcelona":
+			MatchesResponse.Matches[i].AwayTeam.Name = "Espanyol"
+		case "Rayo Vallecano de Madrid":
+			MatchesResponse.Matches[i].AwayTeam.Name = "Rayo Vallecano"
+		case "Real Betis Balompié":
+			MatchesResponse.Matches[i].AwayTeam.Name = "Real Betis"
+		case "Real Sociedad de Fútbol":
+			MatchesResponse.Matches[i].AwayTeam.Name = "Real Sociedad"
+		}
+
+	}
 
 	return MatchesResponse.Matches, nil
 
