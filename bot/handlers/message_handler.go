@@ -1,0 +1,45 @@
+package handlers
+
+import (
+	"context"
+	"fmt"
+	"football_tgbot/bot/config"
+	"football_tgbot/bot/keyboards"
+	"football_tgbot/db"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+)
+
+func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.MatchesStore) error {
+	switch message.Command() {
+	case "start":
+		return SendMessage(bot, message.Chat.ID, "Привет! Я бот для футбольной статистики. Используй /help, чтобы узнать доступные команды.")
+	case "help":
+		return SendMessage(bot, message.Chat.ID, config.HelpText)
+	case "leagues":
+		return SendMessageWithKeyboard(bot, message.Chat.ID, "Выберите лигу:", keyboards.KeyboardLeagues)
+	case "schedule":
+		return HandleScheduleCommand(bot, message, store)
+	case "standings":
+		return SendMessageWithKeyboard(bot, message.Chat.ID, "Выберите лигу для просмотра таблицы:", keyboards.KeyboardStandings)
+	default:
+		return SendMessage(bot, message.Chat.ID, "Неизвестная команда. Используй /help, чтобы узнать доступные команды.")
+	}
+}
+func HandleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.MatchesStore) error {
+	matches, err := store.GetMatches(context.Background(), "matches")
+	if err != nil {
+		return fmt.Errorf("failed to get matches: %w", err)
+	}
+
+	response := "Расписание матчей на ближайшие 10 дней:\n"
+	if len(matches) == 0 {
+		response = "На сегодня матчей не запланировано.\n"
+	} else {
+		for _, match := range matches {
+			response += fmt.Sprintf("- %s vs %s (%s)\n", match.HomeTeam.Name, match.AwayTeam.Name, match.UTCDate[0:10])
+		}
+	}
+
+	return SendMessage(bot, message.Chat.ID, response)
+}

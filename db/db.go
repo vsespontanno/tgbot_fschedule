@@ -8,15 +8,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var Leagues = map[string]string{
-	"Ligue1":          "FL1",
-	"LaLiga":          "PD",
-	"PremierLeague":   "PL",
-	"Bundesliga":      "BL1",
-	"SerieA":          "SA",
-	"ChampionsLeague": "CL",
-}
-
 func ConnectToMongoDB(uri string) (*mongo.Client, error) {
 	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {

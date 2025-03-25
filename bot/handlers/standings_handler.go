@@ -57,6 +57,7 @@ func FormatStandings(standings []types.Standing, collectionName string) string {
 	return response
 }
 
+// MAybe will be used in the future
 // func GetStandingsFromDB(store db.MatchesStore, collectionName string) ([]types.Standing, uint8, error) {
 // 	var flag uint8
 // 	// Получаем все команды из коллекции

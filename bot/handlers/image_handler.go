@@ -16,33 +16,33 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 		height       = 920
 		padding      = 10
 		rowHeight    = 40
-		headerHeight = 50
+		headerHeight = 60
 		fontSize     = 20
 		numCols      = 10
 	)
 
 	// Динамически определяем ширину столбцов
 	colWidths := []int{
-		50,  // #
-		300, // Команда
-		50,  // И
-		50,  // В
-		50,  // Н
-		50,  // П
-		50,  // ГЗ
-		50,  // ГП
-		50,  // РГ
-		50,  // О
+		50,  // # - Номер позиции
+		280, // Команда - Уменьшено с 300 до 280, чтобы освободить место для других колонок
+		55,  // И - Увеличено с 50 до 55
+		55,  // В - Увеличено с 50 до 55
+		55,  // Н - Увеличено с 50 до 55
+		55,  // П - Увеличено с 50 до 55
+		55,  // ГЗ - Увеличено с 50 до 55
+		55,  // ГП - Увеличено с 50 до 55
+		55,  // РГ - Увеличено с 50 до 55
+		55,  // О - Увеличено с 50 до 55
 	}
 
 	dc := gg.NewContext(width, height)
 
 	// Задаем фон
-	dc.SetColor(color.White)
+	dc.SetColor(color.RGBA{18, 18, 18, 255}) // Dark background
 	dc.Clear()
 
 	// Задаем цвет текста
-	dc.SetColor(color.Black)
+	dc.SetColor(color.RGBA{230, 230, 230, 255}) // Light gray text for better contrast
 
 	// Загружаем шрифт
 	if err := dc.LoadFontFace("/usr/share/fonts/noto/NotoSans-Regular.ttf", fontSize); err != nil {
@@ -51,20 +51,20 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 	}
 
 	// Рисуем заголовок таблицы
-	dc.SetColor(color.RGBA{0, 0, 0, 255})
+	dc.SetColor(color.RGBA{255, 255, 255, 255}) // White text for header
 	dc.DrawStringAnchored("Турнирная таблица", float64(width/2), float64(padding)+20, 0.5, 0.5)
 
 	// Рисуем шапку таблицы
 	headers := []string{"#", "Команда", "И", "В", "Н", "П", "ГЗ", "ГП", "РГ", "О"}
 	x := padding
 	y := headerHeight + padding
-	dc.SetColor(color.RGBA{200, 200, 200, 255})
-	dc.DrawRectangle(0, float64(headerHeight), float64(width), float64(rowHeight))
+	dc.SetColor(color.RGBA{40, 40, 40, 255}) // Slightly lighter background for header
+	dc.DrawRectangle(0, float64(headerHeight), float64(width), float64(rowHeight)-5)
 	dc.Fill()
-	dc.SetColor(color.Black)
+	dc.SetColor(color.RGBA{230, 230, 230, 255}) // Light gray text for headers
 
 	for i, header := range headers {
-		dc.DrawStringAnchored(header, float64(x+colWidths[i]/2), float64(y), 0.5, 0.5)
+		dc.DrawStringAnchored(header, float64(x+colWidths[i]/2), float64(y)+7.5, 0.5, 0.5)
 		x += colWidths[i]
 	}
 
@@ -73,10 +73,10 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 	for i, row := range data {
 		x = padding
 		if i%2 == 1 {
-			dc.SetColor(color.RGBA{240, 240, 240, 255})
+			dc.SetColor(color.RGBA{30, 30, 30, 255}) // Slightly lighter background for alternating rows
 			dc.DrawRectangle(0, float64(y-rowHeight/2), float64(width), float64(rowHeight))
 			dc.Fill()
-			dc.SetColor(color.Black)
+			dc.SetColor(color.RGBA{230, 230, 230, 255}) // Light gray text for content
 		}
 		cells := []string{
 			fmt.Sprintf("%d", row.Position),
