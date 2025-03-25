@@ -21,6 +21,16 @@ var Leagues = map[string]League{
 		CollectionName: "SerieA",
 		Code:           "SA",
 	},
+	"Ligue1": {
+		Name:           "Ligue 1",
+		CollectionName: "Ligue1",
+		Code:           "FL1",
+	},
+	"ChampionsLeague": {
+		Name:           "Champions League",
+		CollectionName: "ChampionsLeague",
+		Code:           "CL",
+	},
 }
 
 type League struct {

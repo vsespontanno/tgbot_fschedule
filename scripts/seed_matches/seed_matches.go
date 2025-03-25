@@ -85,6 +85,8 @@ func getMatchesSchedule(apiKey string, today string, tomorrow string, client *ht
 		switch MatchesResponse.Matches[i].HomeTeam.Name {
 		case "Wolverhampton Wanderers FC":
 			MatchesResponse.Matches[i].HomeTeam.Name = "Wolverhampton FC"
+		case "Borussia Mönchengladbach":
+			MatchesResponse.Matches[i].HomeTeam.Name = "Borussia Gladbach"
 		case "FC Internazionale Milano":
 			MatchesResponse.Matches[i].HomeTeam.Name = "Inter"
 		case "Club Atlético de Madrid":

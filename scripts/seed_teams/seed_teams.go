@@ -55,33 +55,33 @@ func getTeamsFromAPI(apiKey, leagueCode string) ([]types.Team, error) {
 }
 
 func main() {
-	// Загрузка .env файла
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	// Получение значений из .env
+	mongoURI := os.Getenv("MONGODB_URI")
+	if mongoURI == "" {
+		log.Fatal("MONGODB_URI is not set in the .env file")
+	}
+
 	apiKey := os.Getenv("FOOTBALL_DATA_API_KEY")
 	if apiKey == "" {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
 
-	mongoURI := os.Getenv("MONGODB_URI")
-
-	// Подключение к MongoDB
 	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	defer client.Disconnect(context.TODO())
+	defer client.Disconnect(context.Background())
 
 	// Для каждой лиги получаем команды и сохраняем в MongoDB
-	for leagueName, league := range db.Leagues {
+	for leagueName, league := range types.Leagues {
+		log.Printf("Fetching teams for %s...", leagueName)
 		teams, err := getTeamsFromAPI(apiKey, league.Code)
 		if err != nil {
-			log.Printf("Error getting teams for %s: %v\n", leagueName, err)
+			log.Printf("Error fetching teams for %s: %v", leagueName, err)
 			continue
 		}
 		if len(teams) == 0 {
@@ -92,6 +92,8 @@ func main() {
 			switch teams[i].Name {
 			case "Wolverhampton Wanderers FC":
 				teams[i].Name = "Wolverhampton FC"
+			case "Borussia Mönchengladbach":
+				teams[i].Name = "Borussia Gladbach"
 			case "FC Internazionale Milano":
 				teams[i].Name = "Inter"
 			case "Club Atlético de Madrid":
@@ -115,5 +117,4 @@ func main() {
 
 		fmt.Printf("Successfully saved %d teams for %s\n", len(teams), leagueName)
 	}
-
 }

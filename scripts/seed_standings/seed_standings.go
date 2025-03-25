@@ -75,7 +75,7 @@ func main() {
 	}
 	defer client.Disconnect(context.TODO())
 
-	for leagueName, league := range db.Leagues {
+	for leagueName, league := range types.Leagues {
 		var standings []types.Standing
 		var err error
 		for i := 0; i < 3; i++ { // Retry up to 3 times
@@ -100,6 +100,8 @@ func main() {
 			switch standings[i].Team.Name {
 			case "Wolverhampton Wanderers FC":
 				standings[i].Team.Name = "Wolverhampton FC"
+			case "Borussia Mönchengladbach":
+				standings[i].Team.Name = "Borussia Gladbach"
 			case "FC Internazionale Milano":
 				standings[i].Team.Name = "Inter"
 			case "Club Atlético de Madrid":
