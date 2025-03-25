@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"football_tgbot/bot/handlers"
 	"football_tgbot/db"
-	"football_tgbot/handlers"
 	"football_tgbot/types"
 	"io"
 	"log"
@@ -75,11 +75,11 @@ func main() {
 	}
 	defer client.Disconnect(context.TODO())
 
-	for leagueName, leagueCode := range db.Leagues {
+	for leagueName, league := range db.Leagues {
 		var standings []types.Standing
 		var err error
 		for i := 0; i < 3; i++ { // Retry up to 3 times
-			standings, err = getLeagueStandings(apiKey, leagueCode)
+			standings, err = getLeagueStandings(apiKey, league.Code)
 			if err == nil {
 				break // Success, exit retry loop
 			}

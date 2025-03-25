@@ -78,8 +78,8 @@ func main() {
 	defer client.Disconnect(context.TODO())
 
 	// Для каждой лиги получаем команды и сохраняем в MongoDB
-	for leagueName, leagueCode := range db.Leagues {
-		teams, err := getTeamsFromAPI(apiKey, leagueCode)
+	for leagueName, league := range db.Leagues {
+		teams, err := getTeamsFromAPI(apiKey, league.Code)
 		if err != nil {
 			log.Printf("Error getting teams for %s: %v\n", leagueName, err)
 			continue
