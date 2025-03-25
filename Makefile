@@ -1,9 +1,9 @@
 build:
-	@go build -o bin/api.exe
+	@go build -o bin/api
 
 
 run: build
-	@./bin/api.exe
+	@./bin/api
 
 seedteams: 
 	@go run scripts/seed_teams/seed_teams.go

@@ -1,25 +1,24 @@
 package keyboards
 
 import (
-	"football_tgbot/bot/models"
-	"football_tgbot/db"
+	"football_tgbot/types"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 var (
-	Leagues = map[string]models.League{
-		"league_APL":        db.Leagues["PremierLeague"],
-		"league_LaLiga":     db.Leagues["LaLiga"],
-		"league_Bundesliga": db.Leagues["Bundesliga"],
-		"league_SerieA":     db.Leagues["SerieA"],
+	Leagues = map[string]types.League{
+		"league_APL":        types.Leagues["PremierLeague"],
+		"league_LaLiga":     types.Leagues["LaLiga"],
+		"league_Bundesliga": types.Leagues["Bundesliga"],
+		"league_SerieA":     types.Leagues["SerieA"],
 	}
 
-	Standings = map[string]models.League{
-		"standings_APL":        db.Leagues["PremierLeague"],
-		"standings_LaLiga":     db.Leagues["LaLiga"],
-		"standings_Bundesliga": db.Leagues["Bundesliga"],
-		"standings_SerieA":     db.Leagues["SerieA"],
+	Standings = map[string]types.League{
+		"standings_APL":        types.Leagues["PremierLeague"],
+		"standings_LaLiga":     types.Leagues["LaLiga"],
+		"standings_Bundesliga": types.Leagues["Bundesliga"],
+		"standings_SerieA":     types.Leagues["SerieA"],
 	}
 
 	KeyboardLeagues = tgbotapi.NewInlineKeyboardMarkup(

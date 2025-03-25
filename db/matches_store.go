@@ -65,8 +65,23 @@ func (m *MongoDBMatchesStore) GetMatches(ctx context.Context, collectionName str
 
 func (m *MongoDBMatchesStore) GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error) {
 	var standings []types.Standing
-	if err := m.findDocuments(ctx, collectionName, &standings); err != nil {
-		return nil, err
+	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
+
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("error finding standings: %w", err)
 	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &standings); err != nil {
+		return nil, fmt.Errorf("error decoding standings: %w", err)
+	}
+
+	// Добавляем логирование
+	fmt.Printf("Raw standings from MongoDB for %s:\n", collectionName)
+	for i, s := range standings {
+		fmt.Printf("Standing %d: %+v\n", i, s)
+	}
+
 	return standings, nil
 }

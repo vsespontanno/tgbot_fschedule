@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"football_tgbot/bot/keyboards"
-	"football_tgbot/bot/models"
+	resp "football_tgbot/bot/response"
 	"football_tgbot/db"
+	"football_tgbot/types"
 	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -20,10 +21,10 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, st
 		return HandleStandingsCallback(bot, query, store, league)
 	}
 
-	return SendMessage(bot, query.Message.Chat.ID, "Неизвестная лига.")
+	return resp.SendMessage(bot, query.Message.Chat.ID, "Неизвестная лига.")
 }
 
-func HandleLeagueCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league models.League) error {
+func HandleLeagueCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
 	teams, err := store.GetTeams(context.Background(), league.CollectionName)
 	if err != nil {
 		return fmt.Errorf("error getting teams: %w", err)
@@ -34,13 +35,18 @@ func HandleLeagueCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, s
 		response += fmt.Sprintf("- %s\n", team.Name)
 	}
 
-	return SendMessage(bot, query.Message.Chat.ID, response)
+	return resp.SendMessage(bot, query.Message.Chat.ID, response)
 }
 
-func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league models.League) error {
-	standings, err := GetStandingsFromDB(store, league.CollectionName)
+func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
+	standings, err := store.GetStandings(context.Background(), league.CollectionName)
 	if err != nil {
 		return fmt.Errorf("error getting standings: %w", err)
+	}
+
+	fmt.Printf("Retrieved %d standings for %s\n", len(standings), league.CollectionName)
+	for _, s := range standings {
+		fmt.Printf("Position: %d, Team: %s, Points: %d\n", s.Position, s.Team.Name, s.Points)
 	}
 
 	imagePath := fmt.Sprintf("%s.png", league.CollectionName)
@@ -50,11 +56,14 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 		return fmt.Errorf("error generating image: %w", err)
 	}
 
-	if err := SendPhoto(bot, query.Message.Chat.ID, imagePath); err != nil {
+	if err := resp.SendPhoto(bot, query.Message.Chat.ID, imagePath); err != nil {
 		return err
 	}
 
-	return SendCallbackResponse(bot, query.ID)
+	// Отправляем ответ на callback query
+	callback := tgbotapi.NewCallback(query.ID, "")
+	_, err = bot.Request(callback)
+	return err
 }
 
 func HandleScheduleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore) error {
@@ -72,5 +81,5 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery,
 		}
 	}
 
-	return SendMessage(bot, query.Message.Chat.ID, response)
+	return resp.SendMessage(bot, query.Message.Chat.ID, response)
 }

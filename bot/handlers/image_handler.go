@@ -10,6 +10,11 @@ import (
 )
 
 func GenerateTableImage(data []types.Standing, filename string) error {
+	fmt.Printf("Generating image for %d standings\n", len(data))
+	if len(data) == 0 {
+		return fmt.Errorf("no standings data provided")
+	}
+
 	// Константы
 	const (
 		width        = 780

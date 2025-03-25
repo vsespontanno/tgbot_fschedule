@@ -1,8 +1,6 @@
-package db
+package types
 
-import "football_tgbot/bot/models"
-
-var Leagues = map[string]models.League{
+var Leagues = map[string]League{
 	"PremierLeague": {
 		Name:           "APL",
 		CollectionName: "PremierLeague",
@@ -23,4 +21,10 @@ var Leagues = map[string]models.League{
 		CollectionName: "SerieA",
 		Code:           "SA",
 	},
+}
+
+type League struct {
+	Name           string
+	CollectionName string
+	Code           string
 }
