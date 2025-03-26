@@ -9,20 +9,25 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// MatchesStore defines the interface for interacting with match and team data.
+// интерфейс для взаимодействия с данными матчей и команд
 type MatchesStore interface {
 	GetTeams(ctx context.Context, collectionName string) ([]types.Team, error)
 	GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
 	GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error) // Добавлен GetStandings
+	SaveStandings(ctx context.Context, collectionName string, standings []types.Standing) error
 }
 
-// MongoDBMatchesStore is a concrete implementation of MatchesStore for MongoDB.
+// структура для взаимодействия с данными матчей и команд
 type MongoDBMatchesStore struct {
 	dbName string
 	client *mongo.Client
 }
 
-// NewMongoDBMatchesStore creates a new MongoDBMatchesStore.
+// функция для создания новой структуры для взаимодействия с данными матчей и команд
+// client - клиент MongoDB
+// dbName - имя базы данных
+// возвращает *MongoDBMatchesStore
+
 func NewMongoDBMatchesStore(client *mongo.Client, dbName string) *MongoDBMatchesStore {
 	return &MongoDBMatchesStore{
 		client: client,
@@ -30,7 +35,7 @@ func NewMongoDBMatchesStore(client *mongo.Client, dbName string) *MongoDBMatches
 	}
 }
 
-// findDocuments is a generic helper function to find documents in a collection.
+// функция для поиска документов в MONGODB
 func (m *MongoDBMatchesStore) findDocuments(ctx context.Context, collectionName string, result interface{}) error {
 	collection := m.client.Database(m.dbName).Collection(collectionName)
 
@@ -47,6 +52,7 @@ func (m *MongoDBMatchesStore) findDocuments(ctx context.Context, collectionName 
 	return nil
 }
 
+// функция для получения команд из MONGODB
 func (m *MongoDBMatchesStore) GetTeams(ctx context.Context, collectionName string) ([]types.Team, error) {
 	var teams []types.Team
 	if err := m.findDocuments(ctx, collectionName, &teams); err != nil {
@@ -55,6 +61,7 @@ func (m *MongoDBMatchesStore) GetTeams(ctx context.Context, collectionName strin
 	return teams, nil
 }
 
+// функция для получения матчей из MONGODB
 func (m *MongoDBMatchesStore) GetMatches(ctx context.Context, collectionName string) ([]types.Match, error) {
 	var matches []types.Match
 	if err := m.findDocuments(ctx, collectionName, &matches); err != nil {
@@ -63,6 +70,7 @@ func (m *MongoDBMatchesStore) GetMatches(ctx context.Context, collectionName str
 	return matches, nil
 }
 
+// функция для получения таблицы из MONGODB
 func (m *MongoDBMatchesStore) GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error) {
 	var standings []types.Standing
 	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
@@ -84,4 +92,24 @@ func (m *MongoDBMatchesStore) GetStandings(ctx context.Context, collectionName s
 	}
 
 	return standings, nil
+}
+
+// функция для сохранения таблицы в MONGODB
+func (m *MongoDBMatchesStore) SaveStandings(ctx context.Context, collectionName string, standings []types.Standing) error {
+	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
+
+	// Clear existing standings
+	_, err := collection.DeleteMany(ctx, map[string]interface{}{})
+	if err != nil {
+		return err
+	}
+
+	// Insert new standings
+	documents := make([]interface{}, len(standings))
+	for i, standing := range standings {
+		documents[i] = standing
+	}
+
+	_, err = collection.InsertMany(ctx, documents)
+	return err
 }

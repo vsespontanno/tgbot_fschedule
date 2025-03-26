@@ -1,5 +1,6 @@
 package types
 
+// мапа для хранения информации о лигах
 var Leagues = map[string]League{
 	"PremierLeague": {
 		Name:           "APL",
@@ -33,6 +34,15 @@ var Leagues = map[string]League{
 	},
 }
 
+// константа для ответа на команду help
+const HelpText = `Доступные команды:
+/start - Начать работу с ботом
+/help - Получить список команд
+/leagues - Показать список футбольных лиг
+/schedule - Показать расписание матчей
+/standings - Показать таблицы лиг`
+
+// структура для хранения информации о лиге
 type League struct {
 	Name           string
 	CollectionName string

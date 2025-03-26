@@ -9,6 +9,7 @@ import (
 	"github.com/fogleman/gg"
 )
 
+// функция для генерации изображения таблицы
 func GenerateTableImage(data []types.Standing, filename string) error {
 	fmt.Printf("Generating image for %d standings\n", len(data))
 	if len(data) == 0 {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"football_tgbot/bot/handlers"
 	"football_tgbot/db"
 	"football_tgbot/types"
 	"io"
@@ -75,6 +74,8 @@ func main() {
 	}
 	defer client.Disconnect(context.TODO())
 
+	store := db.NewMongoDBMatchesStore(client, "football")
+
 	for leagueName, league := range types.Leagues {
 		var standings []types.Standing
 		var err error
@@ -117,8 +118,7 @@ func main() {
 			}
 		}
 
-		standingsCollection := client.Database("football").Collection(leagueName + "_standings")
-		err = handlers.SaveStandingsToMongoDB(standingsCollection, standings)
+		err = store.SaveStandings(context.Background(), leagueName, standings)
 		if err != nil {
 			log.Printf("Error saving standings for %s: %v\n", leagueName, err)
 			continue

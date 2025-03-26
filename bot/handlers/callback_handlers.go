@@ -12,18 +12,24 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+// обработка callback запросов таких как выбор лиги, выбор команды, выбор таблицы через кнопки
 func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore) error {
-	if league, ok := keyboards.Leagues[query.Data]; ok {
+	if league, ok := keyboards.KeyboardsLeagues[query.Data]; ok {
 		return HandleLeagueCallback(bot, query, store, league)
 	}
 
-	if league, ok := keyboards.Standings[query.Data]; ok {
+	if league, ok := keyboards.KeyboardsStandings[query.Data]; ok {
 		return HandleStandingsCallback(bot, query, store, league)
 	}
 
-	return resp.SendMessage(bot, query.Message.Chat.ID, "Неизвестная лига.")
+	if query.Data == "schedule" {
+		return HandleScheduleCallback(bot, query, store)
+	}
+
+	return resp.SendMessage(bot, query.Message.Chat.ID, "Неизвестная команда.")
 }
 
+// обработка лиги по кнопке и вывод команд принадлежащих этой лиге
 func HandleLeagueCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
 	teams, err := store.GetTeams(context.Background(), league.CollectionName)
 	if err != nil {
@@ -38,6 +44,7 @@ func HandleLeagueCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, s
 	return resp.SendMessage(bot, query.Message.Chat.ID, response)
 }
 
+// обработка таблицы и вывод изображения
 func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
 	standings, err := store.GetStandings(context.Background(), league.CollectionName)
 	if err != nil {
@@ -66,6 +73,7 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 	return err
 }
 
+// обработка расписания и вывод матчей
 func HandleScheduleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore) error {
 	matches, err := store.GetMatches(context.Background(), "matches")
 	if err != nil {

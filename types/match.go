@@ -1,5 +1,6 @@
 package types
 
+// структура для хранения информации о матче
 type Match struct {
 	ID          int `json:"id"`
 	Competition struct {
@@ -18,19 +19,23 @@ type Match struct {
 	Status  string `json:"status"`
 }
 
+// структура для хранения информации о командах
 type TeamsResponse struct {
 	Teams []Team `json:"teams"`
 }
 
+// структура для хранения информации о матчах
 type MatchesResponse struct {
 	Matches []Match `json:"matches"`
 }
 
+// структура для хранения информации о площадке
 type Area struct {
 	Name string `json:"name"`
 	Code string `json:"code"`
 }
 
+// структура для хранения информации о команде
 type Team struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -41,6 +46,7 @@ type Team struct {
 	Founded   int    `json:"founded"`
 }
 
+// структура для хранения информации о таблице
 type Standing struct {
 	Position       int  `json:"position"`
 	Team           Team `json:"team"`
@@ -54,6 +60,7 @@ type Standing struct {
 	GoalDifference int  `json:"goalDifference"`
 }
 
+// структура для хранения информации о таблице
 type StandingsResponse struct {
 	Standings []struct {
 		Table []Standing `json:"table"`
