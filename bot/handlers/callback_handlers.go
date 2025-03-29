@@ -96,6 +96,7 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	}
 	msg := tgbotapi.NewPhoto(callback.Message.Chat.ID, photo)
 	_, err = bot.Send(msg)
+
 	return err
 }
 

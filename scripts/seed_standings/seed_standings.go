@@ -106,7 +106,7 @@ func main() {
 			case "FC Internazionale Milano":
 				standings[i].Team.Name = "Inter"
 			case "Club Atlético de Madrid":
-				standings[i].Team.Name = "AtLetico Madrid"
+				standings[i].Team.Name = "Atletico Madrid"
 			case "RCD Espanyol de Barcelona":
 				standings[i].Team.Name = "Espanyol"
 			case "Rayo Vallecano de Madrid":

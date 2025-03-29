@@ -10,33 +10,22 @@ import (
 	"github.com/fogleman/gg"
 )
 
-// Общие константы для всех изображений
-const (
-	width        = 780
-	height       = 920
-	padding      = 10
-	headerHeight = 60
-	fontSize     = 20
-	lineWidth    = 1.5
-	rowHeight    = 60
-)
-
-// Общие цвета
-var (
-	backgroundColor   = color.RGBA{18, 18, 18, 255}
-	textColor         = color.RGBA{230, 230, 230, 255}
-	headerTextColor   = color.RGBA{255, 255, 255, 255}
-	headerBgColor     = color.RGBA{40, 40, 40, 255}
-	alternateRowColor = color.RGBA{30, 30, 30, 255}
-	lineColor         = color.RGBA{60, 60, 60, 255}
-)
-
-// функция для генерации изображения таблицы
 func GenerateTableImage(data []types.Standing, filename string) error {
 	fmt.Printf("Generating image for %d standings\n", len(data))
 	if len(data) == 0 {
 		return fmt.Errorf("no standings data provided")
 	}
+
+	// Константы
+	const (
+		width        = 780
+		height       = 920
+		padding      = 10
+		rowHeight    = 40
+		headerHeight = 60
+		fontSize     = 20
+		numCols      = 10
+	)
 
 	// Динамически определяем ширину столбцов
 	colWidths := []int{
@@ -55,8 +44,11 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 	dc := gg.NewContext(width, height)
 
 	// Задаем фон
-	dc.SetColor(backgroundColor)
+	dc.SetColor(color.RGBA{18, 18, 18, 255}) // Dark background
 	dc.Clear()
+
+	// Задаем цвет текста
+	dc.SetColor(color.RGBA{230, 230, 230, 255}) // Light gray text for better contrast
 
 	// Загружаем шрифт
 	if err := dc.LoadFontFace("/usr/share/fonts/noto/NotoSans-Regular.ttf", fontSize); err != nil {
@@ -65,17 +57,17 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 	}
 
 	// Рисуем заголовок таблицы
-	dc.SetColor(headerTextColor)
+	dc.SetColor(color.RGBA{255, 255, 255, 255}) // White text for header
 	dc.DrawStringAnchored("Турнирная таблица", float64(width/2), float64(padding)+20, 0.5, 0.5)
 
 	// Рисуем шапку таблицы
 	headers := []string{"#", "Команда", "И", "В", "Н", "П", "ГЗ", "ГП", "РГ", "О"}
 	x := padding
 	y := headerHeight + padding
-	dc.SetColor(headerBgColor)
+	dc.SetColor(color.RGBA{40, 40, 40, 255}) // Slightly lighter background for header
 	dc.DrawRectangle(0, float64(headerHeight), float64(width), float64(rowHeight)-5)
 	dc.Fill()
-	dc.SetColor(textColor)
+	dc.SetColor(color.RGBA{230, 230, 230, 255}) // Light gray text for headers
 
 	for i, header := range headers {
 		dc.DrawStringAnchored(header, float64(x+colWidths[i]/2), float64(y)+7.5, 0.5, 0.5)
@@ -87,10 +79,10 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 	for i, row := range data {
 		x = padding
 		if i%2 == 1 {
-			dc.SetColor(alternateRowColor)
+			dc.SetColor(color.RGBA{30, 30, 30, 255}) // Slightly lighter background for alternating rows
 			dc.DrawRectangle(0, float64(y-rowHeight/2), float64(width), float64(rowHeight))
 			dc.Fill()
-			dc.SetColor(textColor)
+			dc.SetColor(color.RGBA{230, 230, 230, 255}) // Light gray text for content
 		}
 		cells := []string{
 			fmt.Sprintf("%d", row.Position),
@@ -149,6 +141,25 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 
 // функция для генерации изображения расписания матчей
 func GenerateScheduleImage(matches []types.Match) (*bytes.Buffer, error) {
+
+	const (
+		width        = 780
+		height       = 920
+		padding      = 10
+		headerHeight = 60
+		fontSize     = 20
+		lineWidth    = 1.5
+		rowHeight    = 60
+	)
+
+	var (
+		backgroundColor   = color.RGBA{18, 18, 18, 255}
+		textColor         = color.RGBA{230, 230, 230, 255}
+		headerTextColor   = color.RGBA{255, 255, 255, 255}
+		headerBgColor     = color.RGBA{40, 40, 40, 255}
+		alternateRowColor = color.RGBA{30, 30, 30, 255}
+		lineColor         = color.RGBA{60, 60, 60, 255}
+	)
 	if len(matches) == 0 {
 		return nil, fmt.Errorf("no matches data provided")
 	}
