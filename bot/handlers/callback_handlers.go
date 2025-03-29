@@ -8,40 +8,22 @@ import (
 	"football_tgbot/db"
 	"football_tgbot/types"
 	"os"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // обработка callback запросов таких как выбор лиги, выбор команды, выбор таблицы через кнопки
 func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore) error {
-	if league, ok := keyboards.KeyboardsLeagues[query.Data]; ok {
-		return HandleLeagueCallback(bot, query, store, league)
-	}
-
 	if league, ok := keyboards.KeyboardsStandings[query.Data]; ok {
 		return HandleStandingsCallback(bot, query, store, league)
 	}
 
-	if query.Data == "schedule" {
-		return HandleScheduleCallback(bot, query, store)
+	if league, ok := keyboards.KeyboardsSchedule[query.Data]; ok {
+		return HandleScheduleCallback(bot, query, store, league)
 	}
 
 	return resp.SendMessage(bot, query.Message.Chat.ID, "Неизвестная команда.")
-}
-
-// обработка лиги по кнопке и вывод команд принадлежащих этой лиге
-func HandleLeagueCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
-	teams, err := store.GetTeams(context.Background(), league.CollectionName)
-	if err != nil {
-		return fmt.Errorf("error getting teams: %w", err)
-	}
-
-	response := fmt.Sprintf("Команды %s:\n", league.Name)
-	for _, team := range teams {
-		response += fmt.Sprintf("- %s\n", team.Name)
-	}
-
-	return resp.SendMessage(bot, query.Message.Chat.ID, response)
 }
 
 // обработка таблицы и вывод изображения
@@ -73,21 +55,70 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 	return err
 }
 
-// обработка расписания и вывод матчей
-func HandleScheduleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore) error {
+// HandleScheduleCallback обрабатывает callback запросы на расписание матчей
+func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
+	leagueCode := strings.TrimPrefix(callback.Data, "schedule_")
+	leagueName := getLeagueName(leagueCode)
+
 	matches, err := store.GetMatches(context.Background(), "matches")
 	if err != nil {
-		return fmt.Errorf("error getting matches: %w", err)
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при получении расписания матчей")
+		bot.Send(msg)
+		return err
 	}
 
-	response := "Расписание матчей на ближайшие 10 дней:\n"
-	if len(matches) == 0 {
-		response = "На сегодня матчей не запланировано.\n"
-	} else {
-		for _, match := range matches {
-			response += fmt.Sprintf("- %s vs %s (%s)\n", match.HomeTeam.Name, match.AwayTeam.Name, match.UTCDate[0:10])
+	// Фильтруем матчи только по лиге
+	var leagueMatches []types.Match
+	for _, match := range matches {
+		if match.Competition.Name == leagueName {
+			leagueMatches = append(leagueMatches, match)
 		}
 	}
 
-	return resp.SendMessage(bot, query.Message.Chat.ID, response)
+	if len(leagueMatches) == 0 {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, fmt.Sprintf("В %s матчей не запланировано", leagueName))
+		bot.Send(msg)
+		return nil
+	}
+
+	// Генерируем изображение с расписанием
+	buf, err := GenerateScheduleImage(leagueMatches)
+	if err != nil {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием")
+		bot.Send(msg)
+		return err
+	}
+
+	// Отправляем изображение
+	photo := tgbotapi.FileBytes{
+		Name:  "schedule.png",
+		Bytes: buf.Bytes(),
+	}
+	msg := tgbotapi.NewPhoto(callback.Message.Chat.ID, photo)
+	_, err = bot.Send(msg)
+	return err
+}
+
+// getLeagueName возвращает полное название лиги по её коду
+func getLeagueName(code string) string {
+	switch code {
+	case "laliga":
+		return "La Liga"
+	case "epl":
+		return "EPL"
+	case "primeira":
+		return "Primeira"
+	case "eredivisie":
+		return "Eredivisie"
+	case "bundesliga":
+		return "Bundesliga"
+	case "seriea":
+		return "Serie A"
+	case "ucl":
+		return "UCL"
+	case "uel":
+		return "UEL"
+	default:
+		return code
+	}
 }

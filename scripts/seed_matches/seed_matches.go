@@ -30,8 +30,8 @@ func main() {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
 
-	today := time.Now().Add(24 * time.Hour).Format("2006-01-02")
-	tomorrow := time.Now().Add(24 * time.Hour * 10).Format("2006-01-02")
+	today := time.Now().Format("2006-01-02")
+	tomorrow := time.Now().Add(24 * time.Hour).Format("2006-01-02")
 	mongoURI := os.Getenv("MONGODB_URI")
 
 	// Подключение к MongoDB
@@ -120,10 +120,47 @@ func getMatchesSchedule(apiKey string, today string, tomorrow string, client *ht
 			MatchesResponse.Matches[i].AwayTeam.Name = "Real Sociedad"
 		}
 
+		switch MatchesResponse.Matches[i].Competition.Name {
+		case "UEFA Champions League":
+			MatchesResponse.Matches[i].Competition.Name = "UCL"
+		case "UEFA Europa League":
+			MatchesResponse.Matches[i].Competition.Name = "UEL"
+		case "Primera División":
+			MatchesResponse.Matches[i].Competition.Name = "La Liga"
+		case "Primeira Liga":
+			MatchesResponse.Matches[i].Competition.Name = "Primeira"
+		case "Premier League":
+			MatchesResponse.Matches[i].Competition.Name = "EPL"
+		case "Serie A":
+			MatchesResponse.Matches[i].Competition.Name = "Serie A"
+		case "Bundesliga":
+			MatchesResponse.Matches[i].Competition.Name = "Bundesliga"
+		case "Eredivisie":
+			MatchesResponse.Matches[i].Competition.Name = "Eredivisie"
+		}
+
 	}
 
-	return MatchesResponse.Matches, nil
+	// Фильтруем матчи только нужных лиг
+	var filteredMatches []types.Match
+	allowedLeagues := map[string]bool{
+		"La Liga":    true,
+		"EPL":        true,
+		"Primeira":   true,
+		"Eredivisie": true,
+		"Bundesliga": true,
+		"Serie A":    true,
+		"UCL":        true,
+		"UEL":        true,
+	}
 
+	for _, match := range MatchesResponse.Matches {
+		if allowedLeagues[match.Competition.Name] {
+			filteredMatches = append(filteredMatches, match)
+		}
+	}
+
+	return filteredMatches, nil
 }
 
 func saveMatchesToMongoDB(client *mongo.Client, matches []types.Match, today string) error {

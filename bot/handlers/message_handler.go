@@ -1,49 +1,69 @@
 package handlers
 
 import (
-	"context"
-	"fmt"
 	"football_tgbot/bot/keyboards"
-	resp "football_tgbot/bot/response"
 	"football_tgbot/db"
-	"football_tgbot/types"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-// обработка сообщений и команд
+// HandleMessage обрабатывает все входящие сообщения
 func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.MatchesStore) error {
+	if !message.IsCommand() {
+		return nil
+	}
+
 	switch message.Command() {
 	case "start":
-		return resp.SendMessage(bot, message.Chat.ID, "Привет! Я бот для футбольной статистики. Используй /help, чтобы узнать доступные команды.")
+		return handleStartCommand(bot, message)
 	case "help":
-		return resp.SendMessage(bot, message.Chat.ID, types.HelpText)
-	case "leagues":
-		return resp.SendMessageWithKeyboard(bot, message.Chat.ID, "Выберите лигу:", keyboards.KeyboardLeagues)
+		return handleHelpCommand(bot, message)
+	case "table":
+		return handleTableCommand(bot, message)
 	case "schedule":
-		return HandleScheduleCommand(bot, message, store)
-	case "standings":
-		return resp.SendMessageWithKeyboard(bot, message.Chat.ID, "Выберите лигу для просмотра таблицы:", keyboards.KeyboardStandings)
+		return handleScheduleCommand(bot, message)
 	default:
-		return resp.SendMessage(bot, message.Chat.ID, "Неизвестная команда. Используй /help, чтобы узнать доступные команды.")
+		return nil
 	}
 }
 
-// обработка команды расписания
-func HandleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.MatchesStore) error {
-	matches, err := store.GetMatches(context.Background(), "matches")
-	if err != nil {
-		return fmt.Errorf("failed to get matches: %w", err)
-	}
+func handleStartCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	text := `Привет! Я бот для просмотра футбольных матчей и турнирных таблиц.
 
-	msgText := "Расписание матчей на ближайшие 10 дней:\n"
-	if len(matches) == 0 {
-		msgText = "На сегодня матчей не запланировано.\n"
-	} else {
-		for _, match := range matches {
-			msgText += fmt.Sprintf("- %s vs %s (%s)\n", match.HomeTeam.Name, match.AwayTeam.Name, match.UTCDate[0:10])
-		}
-	}
+	Доступные команды:
+	/schedule - Посмотреть расписание матчей
+	/table - Посмотреть турнирную таблицу
+	/help - Показать справку`
 
-	return resp.SendMessage(bot, message.Chat.ID, msgText)
+	msg := tgbotapi.NewMessage(message.Chat.ID, text)
+	_, err := bot.Send(msg)
+	return err
+}
+
+func handleHelpCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	text := `Список доступных команд:
+
+	/schedule - Показывает расписание матчей на сегодня для выбранной лиги
+	/table - Показывает турнирную таблицу для выбранной лиги
+	/help - Показывает это сообщение
+
+	При выборе команды /schedule или /table вам будет предложено выбрать лигу из списка.`
+
+	msg := tgbotapi.NewMessage(message.Chat.ID, text)
+	_, err := bot.Send(msg)
+	return err
+}
+
+func handleTableCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите лигу для просмотра турнирной таблицы:")
+	msg.ReplyMarkup = keyboards.KeyboardStandings
+	_, err := bot.Send(msg)
+	return err
+}
+
+func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите лигу для просмотра расписания матчей:")
+	msg.ReplyMarkup = keyboards.KeyboardSchedule
+	_, err := bot.Send(msg)
+	return err
 }

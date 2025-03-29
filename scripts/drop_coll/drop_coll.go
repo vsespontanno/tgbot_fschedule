@@ -29,9 +29,9 @@ func main() {
 	defer client.Disconnect(context.TODO())
 
 	db := client.Database("football")
-	err = db.Drop(context.TODO())
+	err = db.Collection("matches").Drop(context.TODO())
 	if err != nil {
-		log.Fatal()
+		log.Fatal(err)
 	}
 	fmt.Printf("Database %s dropped successfully\n", "football")
 }
