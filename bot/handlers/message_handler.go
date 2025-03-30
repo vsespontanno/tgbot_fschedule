@@ -10,7 +10,7 @@ import (
 // HandleMessage обрабатывает все входящие сообщения
 func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.MatchesStore) error {
 	if !message.IsCommand() {
-		return nil
+		return handleUnknownCommand(bot, message)
 	}
 
 	switch message.Command() {
@@ -23,7 +23,7 @@ func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message, store db.Mat
 	case "schedule":
 		return handleScheduleCommand(bot, message)
 	default:
-		return nil
+		return handleUnknownCommand(bot, message)
 	}
 }
 
@@ -64,6 +64,13 @@ func handleTableCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
 func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите лигу для просмотра расписания матчей:")
 	msg.ReplyMarkup = keyboards.KeyboardSchedule
+	_, err := bot.Send(msg)
+	return err
+}
+
+func handleUnknownCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	text := "Неизвестная команда. Напишите /help для просмотра доступных команд."
+	msg := tgbotapi.NewMessage(message.Chat.ID, text)
 	_, err := bot.Send(msg)
 	return err
 }

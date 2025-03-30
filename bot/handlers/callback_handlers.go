@@ -55,8 +55,11 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 	return err
 }
 
+// TODO: переписать как в standings
 // HandleScheduleCallback обрабатывает callback запросы на расписание матчей
 func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
+	// Отвечаем на callback запрос
+	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
 	leagueCode := strings.TrimPrefix(callback.Data, "schedule_")
 	leagueName := getLeagueName(leagueCode)
 
@@ -64,6 +67,9 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	if err != nil {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при получении расписания матчей")
 		bot.Send(msg)
+		if _, err := bot.Request(callbackConfig); err != nil {
+			return err
+		}
 		return err
 	}
 
@@ -78,6 +84,9 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	if len(leagueMatches) == 0 {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, fmt.Sprintf("В %s матчей не запланировано", leagueName))
 		bot.Send(msg)
+		if _, err := bot.Request(callbackConfig); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -86,6 +95,9 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	if err != nil {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием")
 		bot.Send(msg)
+		if _, err := bot.Request(callbackConfig); err != nil {
+			return err
+		}
 		return err
 	}
 
@@ -96,6 +108,10 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	}
 	msg := tgbotapi.NewPhoto(callback.Message.Chat.ID, photo)
 	_, err = bot.Send(msg)
+
+	if _, err := bot.Request(callbackConfig); err != nil {
+		return err
+	}
 
 	return err
 }
