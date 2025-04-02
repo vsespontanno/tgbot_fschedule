@@ -7,14 +7,20 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // интерфейс для взаимодействия с данными матчей и команд
 type MatchesStore interface {
 	GetTeams(ctx context.Context, collectionName string) ([]types.Team, error)
 	GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
-	GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error) // Добавлен GetStandings
+	GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error)
 	SaveStandings(ctx context.Context, collectionName string, standings []types.Standing) error
+	// Новые методы для работы с рейтингами
+	GetTeamRatings(ctx context.Context, collectionName string) ([]types.TeamRating, error)
+	SaveTeamRatings(ctx context.Context, collectionName string, ratings []types.TeamRating) error
+	UpdateTeamRating(ctx context.Context, collectionName string, rating types.TeamRating) error
+	GetTeamRating(ctx context.Context, collectionName string, teamID int) (*types.TeamRating, error)
 }
 
 // структура для взаимодействия с данными матчей и команд
@@ -112,4 +118,80 @@ func (m *MongoDBMatchesStore) SaveStandings(ctx context.Context, collectionName 
 
 	_, err = collection.InsertMany(ctx, documents)
 	return err
+}
+
+// функция для получения рейтингов команд из MONGODB
+func (m *MongoDBMatchesStore) GetTeamRatings(ctx context.Context, collectionName string) ([]types.TeamRating, error) {
+	var ratings []types.TeamRating
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("error finding team ratings: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	if err := cursor.All(ctx, &ratings); err != nil {
+		return nil, fmt.Errorf("error decoding team ratings: %w", err)
+	}
+
+	return ratings, nil
+}
+
+// функция для сохранения рейтингов команд в MONGODB
+func (m *MongoDBMatchesStore) SaveTeamRatings(ctx context.Context, collectionName string, ratings []types.TeamRating) error {
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+
+	// Очищаем существующие рейтинги
+	_, err := collection.DeleteMany(ctx, map[string]interface{}{})
+	if err != nil {
+		return fmt.Errorf("error clearing existing ratings: %w", err)
+	}
+
+	// Вставляем новые рейтинги
+	documents := make([]interface{}, len(ratings))
+	for i, rating := range ratings {
+		documents[i] = rating
+	}
+
+	_, err = collection.InsertMany(ctx, documents)
+	if err != nil {
+		return fmt.Errorf("error inserting new ratings: %w", err)
+	}
+
+	return nil
+}
+
+// функция для обновления рейтинга конкретной команды
+func (m *MongoDBMatchesStore) UpdateTeamRating(ctx context.Context, collectionName string, rating types.TeamRating) error {
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+
+	filter := bson.M{"teamId": rating.TeamID}
+	update := bson.M{"$set": rating}
+	opts := options.Update().SetUpsert(true)
+
+	_, err := collection.UpdateOne(ctx, filter, update, opts)
+	if err != nil {
+		return fmt.Errorf("error updating team rating: %w", err)
+	}
+
+	return nil
+}
+
+// функция для получения рейтинга конкретной команды
+func (m *MongoDBMatchesStore) GetTeamRating(ctx context.Context, collectionName string, teamID int) (*types.TeamRating, error) {
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+
+	var rating types.TeamRating
+	filter := bson.M{"teamId": teamID}
+
+	err := collection.FindOne(ctx, filter).Decode(&rating)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil // Команда не найдена
+		}
+		return nil, fmt.Errorf("error finding team rating: %w", err)
+	}
+
+	return &rating, nil
 }

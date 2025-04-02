@@ -6,6 +6,7 @@ import (
 	"football_tgbot/bot/keyboards"
 	resp "football_tgbot/bot/response"
 	"football_tgbot/db"
+	"football_tgbot/rating"
 	"football_tgbot/types"
 	"os"
 	"strings"
@@ -14,7 +15,20 @@ import (
 )
 
 // обработка callback запросов таких как выбор лиги, выбор команды, выбор таблицы через кнопки
-func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore) error {
+func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, ratingService *rating.Service) error {
+	// Отправляем пустой ответ, чтобы убрать "часики" у кнопки
+	callback := tgbotapi.NewCallback(query.ID, "")
+	if _, err := bot.Request(callback); err != nil {
+		return err
+	}
+
+	switch query.Data {
+	case "show_top_matches":
+		return HandleTopMatches(bot, query.Message, store, ratingService)
+	case "show_all_matches":
+		return handleDefaultScheduleCommand(bot, query.Message)
+	}
+
 	if league, ok := keyboards.KeyboardsStandings[query.Data]; ok {
 		return HandleStandingsCallback(bot, query, store, league)
 	}

@@ -187,13 +187,13 @@ func GenerateScheduleImage(matches []types.Match) (*bytes.Buffer, error) {
 
 	// Рисуем шапку таблицы
 	dc.SetColor(headerBgColor)
-	dc.DrawRectangle(0, float64(headerHeight), float64(width), float64(rowHeight)-5)
+	dc.DrawRectangle(0, float64(headerHeight)-10, float64(width), float64(rowHeight)-5)
 	dc.Fill()
 
 	// Рисуем линии
 	dc.SetColor(lineColor)
 	dc.SetLineWidth(lineWidth)
-	dc.DrawLine(0, float64(headerHeight+rowHeight-5), float64(width), float64(headerHeight+rowHeight-5))
+	dc.DrawLine(0, float64(headerHeight+rowHeight-15), float64(width), float64(headerHeight+rowHeight-15))
 	dc.Stroke()
 
 	// Рисуем заголовки

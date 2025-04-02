@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"football_tgbot/bot/handlers"
 	"football_tgbot/db"
+	"football_tgbot/rating"
 	"log"
 	"os"
+	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -27,6 +29,11 @@ func Start() error {
 		return fmt.Errorf("MONGODB_URI is not set")
 	}
 
+	postgresURI := os.Getenv("POSTGRES_URI")
+	if postgresURI == "" {
+		return fmt.Errorf("POSTGRES_URI is not set")
+	}
+
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)
@@ -35,30 +42,39 @@ func Start() error {
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
-	client, err := db.ConnectToMongoDB(mongoURI)
+	// MongoDB connection
+	mongoClient, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		return fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
-	defer client.Disconnect(context.TODO())
+	defer mongoClient.Disconnect(context.TODO())
 
-	store := db.NewMongoDBMatchesStore(client, "football")
-	return handleUpdates(bot, store)
+	mongoStore := db.NewMongoDBMatchesStore(mongoClient, "football")
+
+	// Создаем сервис рейтингов
+	ratingService := rating.NewService(mongoStore)
+
+	// Запускаем обновление рейтингов в отдельной горутине
+	ctx := context.Background()
+	go ratingService.StartRatingUpdater(ctx, "football", 1*time.Hour)
+
+	return handleUpdates(bot, mongoStore, ratingService)
 }
 
-func handleUpdates(bot *tgbotapi.BotAPI, store db.MatchesStore) error {
+func handleUpdates(bot *tgbotapi.BotAPI, mongoStore db.MatchesStore, ratingService *rating.Service) error {
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
 	updates := bot.GetUpdatesChan(updateConfig)
 
 	for update := range updates {
 		if update.Message != nil {
-			if err := handlers.HandleMessage(bot, update.Message, store); err != nil {
+			if err := handlers.HandleMessage(bot, update.Message, mongoStore, ratingService); err != nil {
 				log.Printf("Error handling message: %v", err)
 			}
 		}
 
 		if update.CallbackQuery != nil {
-			if err := handlers.HandleCallbackQuery(bot, update.CallbackQuery, store); err != nil {
+			if err := handlers.HandleCallbackQuery(bot, update.CallbackQuery, mongoStore, ratingService); err != nil {
 				log.Printf("Error handling callback query: %v", err)
 			}
 		}
