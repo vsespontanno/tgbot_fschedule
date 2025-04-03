@@ -26,7 +26,7 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, st
 	case "show_top_matches":
 		return HandleTopMatches(bot, query.Message, store, ratingService)
 	case "show_all_matches":
-		return handleDefaultScheduleCommand(bot, query.Message)
+		return HandleDefaultScheduleCommand(bot, query.Message)
 	}
 
 	if league, ok := keyboards.KeyboardsStandings[query.Data]; ok {

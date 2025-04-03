@@ -65,24 +65,10 @@ func handleTableCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
 	return err
 }
 
-func handleDefaultScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите лигу для просмотра расписания матчей:")
-	msg.ReplyMarkup = keyboards.KeyboardSchedule
-	_, err := bot.Send(msg)
-	return err
-}
-
 func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
 	// Создаем inline-клавиатуру с двумя опциями
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Все матчи", "show_all_matches"),
-			tgbotapi.NewInlineKeyboardButtonData("Топ матчи", "show_top_matches"),
-		),
-	)
-
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите тип расписания:")
-	msg.ReplyMarkup = keyboard
+	msg.ReplyMarkup = keyboards.Keyboard_Schedule
 	_, err := bot.Send(msg)
 	return err
 }
@@ -92,5 +78,12 @@ func handleUnknownCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 	response := "Неизвестная команда. Используйте /help для просмотра доступных команд."
 	msgConfig := tgbotapi.NewMessage(msg.Chat.ID, response)
 	_, err := bot.Send(msgConfig)
+	return err
+}
+
+func HandleDefaultScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите лигу для просмотра расписания:")
+	msg.ReplyMarkup = keyboards.KeyboardDefaultSchedule
+	_, err := bot.Send(msg)
 	return err
 }

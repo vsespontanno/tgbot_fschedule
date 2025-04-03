@@ -43,7 +43,7 @@ var (
 			tgbotapi.NewInlineKeyboardButtonData("Champions League", "standings_CL"),
 		),
 	)
-	KeyboardSchedule = tgbotapi.NewInlineKeyboardMarkup(
+	KeyboardDefaultSchedule = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("La Liga", "schedule_laliga"),
 			tgbotapi.NewInlineKeyboardButtonData("EPL", "schedule_epl"),
@@ -59,6 +59,12 @@ var (
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("UCL", "schedule_ucl"),
 			tgbotapi.NewInlineKeyboardButtonData("UEL", "schedule_uel"),
+		),
+	)
+	Keyboard_Schedule = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Все матчи", "show_all_matches"),
+			tgbotapi.NewInlineKeyboardButtonData("Топ матчи", "show_top_matches"),
 		),
 	)
 )
