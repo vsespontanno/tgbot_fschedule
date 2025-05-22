@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"football_tgbot/db"
+	"football_tgbot/internal/db"
 	"log"
 	"os"
 
@@ -36,12 +36,14 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Println("---stage 4")
-	standings := [6]string{"Bundesliga_standings", "PremierLeague_standings", "LaLiga_standings", "SerieA_standings", "Ligue1_standings"}
-	for _, s := range standings {
-		err = db.Collection(s).Drop(context.TODO())
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
 
+	fmt.Println("---stage 5")
+
+	// standings := [6]string{"Bundesliga_standings", "PremierLeague_standings", "LaLiga_standings", "SerieA_standings", "Ligue1_standings", "ChampionsLeague_standings"}
+	// for _, s := range standings {
+	// 	err = db.Collection(s).Drop(context.TODO())
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// }
 }

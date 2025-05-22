@@ -3,7 +3,8 @@ package db
 import (
 	"context"
 	"fmt"
-	"football_tgbot/types"
+	"football_tgbot/internal/types"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,6 +22,7 @@ type MatchesStore interface {
 	SaveTeamRatings(ctx context.Context, collectionName string, ratings []types.TeamRating) error
 	UpdateTeamRating(ctx context.Context, collectionName string, rating types.TeamRating) error
 	GetTeamRating(ctx context.Context, collectionName string, teamID int) (*types.TeamRating, error)
+	GetTeamStanding(ctx context.Context, collectionName string, teamID int) (*types.Standing, error)
 }
 
 // структура для взаимодействия с данными матчей и команд
@@ -182,16 +184,43 @@ func (m *MongoDBMatchesStore) UpdateTeamRating(ctx context.Context, collectionNa
 func (m *MongoDBMatchesStore) GetTeamRating(ctx context.Context, collectionName string, teamID int) (*types.TeamRating, error) {
 	collection := m.client.Database(m.dbName).Collection(collectionName)
 
-	var rating types.TeamRating
-	filter := bson.M{"teamId": teamID}
-
-	err := collection.FindOne(ctx, filter).Decode(&rating)
+	var standing types.Standing
+	// Используем правильное имя поля для поиска команды
+	filter := bson.M{"team.id": teamID}
+	err := collection.FindOne(ctx, filter).Decode(&standing)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil // Команда не найдена
+			return nil, nil
 		}
-		return nil, fmt.Errorf("error finding team rating: %w", err)
+		return nil, fmt.Errorf("error finding team standing: %w", err)
 	}
 
-	return &rating, nil
+	rating := &types.TeamRating{
+		TeamID:      teamID,
+		TeamName:    standing.Team.Name,
+		Position:    standing.Position,
+		Points:      standing.Points,
+		GoalDiff:    standing.GoalDifference,
+		Form:        0,
+		LastUpdated: time.Now().Format(time.RFC3339),
+	}
+
+	return rating, nil
+}
+
+// GetTeamStanding получает данные о положении команды в турнирной таблице
+func (m *MongoDBMatchesStore) GetTeamStanding(ctx context.Context, collectionName string, teamID int) (*types.Standing, error) {
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+
+	var standing types.Standing
+	filter := bson.M{"team.id": teamID}
+	err := collection.FindOne(ctx, filter).Decode(&standing)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error finding team standing: %w", err)
+	}
+
+	return &standing, nil
 }

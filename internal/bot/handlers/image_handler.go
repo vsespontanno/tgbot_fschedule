@@ -3,7 +3,7 @@ package handlers
 import (
 	"bytes"
 	"fmt"
-	"football_tgbot/types"
+	"football_tgbot/internal/types"
 	"image/color"
 	"strings"
 

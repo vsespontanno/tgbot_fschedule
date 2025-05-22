@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"football_tgbot/db"
-	"football_tgbot/types"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/types"
 	"log"
 	"time"
 )

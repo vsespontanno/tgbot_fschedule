@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"football_tgbot/bot/keyboards"
-	"football_tgbot/db"
-	"football_tgbot/rating"
+	"football_tgbot/internal/bot/keyboards"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/rating"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )

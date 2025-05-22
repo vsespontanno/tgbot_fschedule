@@ -3,9 +3,9 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"football_tgbot/db"
-	"football_tgbot/rating"
-	"football_tgbot/types"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/rating"
+	"football_tgbot/internal/types"
 	"sort"
 	"time"
 
@@ -29,7 +29,7 @@ func HandleTopMatches(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, store db.Matc
 	// Получаем рейтинги для всех матчей
 	var matchesWithRatings []MatchWithRating
 	for _, match := range matches {
-		rating, err := ratingService.GetMatchRating(ctx, "team_ratings", match)
+		rating, err := ratingService.GetMatchRating(ctx, "", match)
 		if err != nil {
 			continue // Пропускаем матчи с ошибками при получении рейтинга
 		}

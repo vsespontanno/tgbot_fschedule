@@ -1,7 +1,7 @@
 package main
 
 import (
-	"football_tgbot/bot"
+	"football_tgbot/internal/bot"
 	"log"
 )
 

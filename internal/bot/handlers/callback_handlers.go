@@ -3,11 +3,11 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"football_tgbot/bot/keyboards"
-	resp "football_tgbot/bot/response"
-	"football_tgbot/db"
-	"football_tgbot/rating"
-	"football_tgbot/types"
+	"football_tgbot/internal/bot/keyboards"
+	resp "football_tgbot/internal/bot/response"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/rating"
+	"football_tgbot/internal/types"
 	"os"
 	"strings"
 

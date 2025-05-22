@@ -1,7 +1,7 @@
 package keyboards
 
 import (
-	"football_tgbot/types"
+	"football_tgbot/internal/types"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )

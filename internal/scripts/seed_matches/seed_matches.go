@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"football_tgbot/db"
-	"football_tgbot/types"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/types"
 	"io"
 	"log"
 	"net/http"
@@ -90,7 +90,7 @@ func getMatchesSchedule(apiKey string, today string, tomorrow string, client *ht
 		case "FC Internazionale Milano":
 			MatchesResponse.Matches[i].HomeTeam.Name = "Inter"
 		case "Club Atlético de Madrid":
-			MatchesResponse.Matches[i].HomeTeam.Name = "AtLetico Madrid"
+			MatchesResponse.Matches[i].HomeTeam.Name = "Atletico Madrid"
 		case "RCD Espanyol de Barcelona":
 			MatchesResponse.Matches[i].HomeTeam.Name = "Espanyol"
 		case "Rayo Vallecano de Madrid":

@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Документация
+README.md
+LICENSE
+*.md
+
+# Логи
+*.log
+
+# Каталоги сборки и бинарники
+bin/
+build/
+
+# Тесты
+test/
+*.test
+
+# Скрипты и миграции (если не нужны в контейнере)
+internal/scripts/
+migrations/
+
+# Мусорные файлы ОС
+.DS_Store
+Thumbs.db
+
+# Локальные настройки
+.vscode/
+.idea/

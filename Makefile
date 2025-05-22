@@ -1,21 +1,21 @@
 build:
-	@go build -o bin/api
+	@go build -o bin/api ./cmd/bot
 
 
 run: build
 	@./bin/api
 
 seedteams: 
-	@go run scripts/seed_teams/seed_teams.go
+	@go run internal/scripts/seed_teams/seed_teams.go
 
 seedmatches: 
-	@go run scripts/seed_matches/seed_matches.go
+	@go run internal/scripts/seed_matches/seed_matches.go
 
 seedstandings: 
-	@go run scripts/seed_standings/seed_standings.go
+	@go run internal/scripts/seed_standings/seed_standings.go
 
 drop: 
-	@go run scripts/drop_coll/drop_coll.go
+	@go run internal/scripts/drop_coll/drop_coll.go
 
 test:
 	@go test -v ./...

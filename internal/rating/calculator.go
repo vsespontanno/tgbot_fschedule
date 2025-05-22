@@ -1,9 +1,16 @@
 package rating
 
 import (
-	"football_tgbot/types"
+	"encoding/json"
+	"fmt"
+	"football_tgbot/internal/types"
+	"log"
+	"net/http"
+	"os"
 	"sort"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 // Calculator структура для расчета рейтингов
@@ -91,27 +98,52 @@ func (c *Calculator) calculateForm(matches []types.Match, teamID int) float64 {
 
 // getLastMatches возвращает последние N матчей команды
 func (c *Calculator) getLastMatches(matches []types.Match, teamID int, n int) []types.Match {
-	var teamMatches []types.Match
-
-	// Фильтруем матчи команды
-	for _, match := range matches {
-		if match.HomeTeam.ID == teamID || match.AwayTeam.ID == teamID {
-			teamMatches = append(teamMatches, match)
-		}
+	// Создаем HTTP клиент с таймаутом
+	client := &http.Client{
+		Timeout: 10 * time.Second,
 	}
 
+	// Формируем URL для запроса матчей команды
+	// Замените YOUR_API_KEY на реальный ключ API
+	url := fmt.Sprintf("http://api.football-data.org/v4/teams/%d/matches?limit=%d&status=FINISHED", teamID, n)
+	fmt.Println("---stage 1")
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Printf("Error creating request: %v", err)
+		return matches // Возвращаем переданные матчи как fallback
+	}
+	fmt.Println("---stage 2")
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+	fmt.Println("---stage 3")
+	// Добавляем заголовок с API ключом
+	req.Header.Add("X-Auth-Token", os.Getenv("FOOTBALL_API_KEY"))
+	fmt.Println("---stage 4")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("Error fetching matches: %v", err)
+		return matches // Возвращаем переданные матчи как fallback
+	}
+	defer resp.Body.Close()
+	fmt.Println("---stage 5")
+	var apiResponse struct {
+		Matches []types.Match `json:"matches"`
+	}
+	fmt.Printf("---stage 6, apiResponse: %v\n", apiResponse)
+	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		log.Printf("Error decoding response: %v", err)
+		return matches // Возвращаем переданные матчи как fallback
+	}
+	fmt.Printf("---stage 7, apiResponse: %v\n", apiResponse)
 	// Сортируем по дате (новые первыми)
-	sort.Slice(teamMatches, func(i, j int) bool {
-		dateI, _ := time.Parse(time.RFC3339, teamMatches[i].UTCDate)
-		dateJ, _ := time.Parse(time.RFC3339, teamMatches[j].UTCDate)
+	sort.Slice(apiResponse.Matches, func(i, j int) bool {
+		dateI, _ := time.Parse(time.RFC3339, apiResponse.Matches[i].UTCDate)
+		dateJ, _ := time.Parse(time.RFC3339, apiResponse.Matches[j].UTCDate)
 		return dateI.After(dateJ)
 	})
-
-	// Возвращаем последние N матчей
-	if len(teamMatches) > n {
-		return teamMatches[:n]
-	}
-	return teamMatches
+	fmt.Printf("---stage 8, apiResponse: %v\n", apiResponse)
+	return apiResponse.Matches
 }
 
 // getTournamentWeight возвращает вес турнира
@@ -135,8 +167,39 @@ func (c *Calculator) getTournamentWeight(areaCode string) float64 {
 	}
 }
 
-// CalculateMatchRating вычисляет рейтинг матча на основе рейтингов команд
-func (c *Calculator) CalculateMatchRating(match types.Match, homeRating, awayRating types.TeamRating) float64 {
-	// Рейтинг матча - среднее значение рейтингов команд
-	return (homeRating.CalculateRating() + awayRating.CalculateRating()) / 2
+// CalculateMatchRating вычисляет рейтинг матча на основе рейтингов команд и других факторов
+func (c *Calculator) CalculateMatchRating(match types.Match, home types.TeamRating, away types.TeamRating) float64 {
+	base := (home.CalculateRating() + away.CalculateRating()) / 2
+
+	// Бонус за дерби (пример)
+	if isDerby(match) {
+		base += 0.1
+	}
+
+	// Бонус за матч лидеров
+	if home.Position <= 2 && away.Position <= 2 {
+		base += 0.1
+	}
+
+	// Ограничение диапазона
+	if base > 1.0 {
+		base = 1.0
+	}
+	return base
+}
+
+// isDerby определяет, является ли матч дерби (пример)
+func isDerby(match types.Match) bool {
+	derbies := [][]string{
+		{"Real Madrid", "Atletico Madrid"},
+		{"Manchester United", "Manchester City"},
+		// TDOD : Другие дерби
+	}
+	for _, pair := range derbies {
+		if (match.HomeTeam.Name == pair[0] && match.AwayTeam.Name == pair[1]) ||
+			(match.HomeTeam.Name == pair[1] && match.AwayTeam.Name == pair[0]) {
+			return true
+		}
+	}
+	return false
 }

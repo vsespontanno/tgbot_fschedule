@@ -3,9 +3,9 @@ package bot
 import (
 	"context"
 	"fmt"
-	"football_tgbot/bot/handlers"
-	"football_tgbot/db"
-	"football_tgbot/rating"
+	"football_tgbot/internal/bot/handlers"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/rating"
 	"log"
 	"os"
 	"time"

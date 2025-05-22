@@ -2,8 +2,9 @@ package rating
 
 import (
 	"context"
-	"football_tgbot/db"
-	"football_tgbot/types"
+	"fmt"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/types"
 	"log"
 	"time"
 )
@@ -54,25 +55,49 @@ func (s *Service) UpdateRatings(ctx context.Context, collectionName string) erro
 }
 
 // GetMatchRating возвращает рейтинг матча
-func (s *Service) GetMatchRating(ctx context.Context, collectionName string, match types.Match) (float64, error) {
-	// Получаем рейтинги команд
-	homeRating, err := s.store.GetTeamRating(ctx, collectionName, match.HomeTeam.ID)
-	if err != nil {
-		return 0, err
+func (s *Service) GetMatchRating(ctx context.Context, _ string, match types.Match) (float64, error) {
+	// Определяем название коллекции на основе competition ID матча
+	comp_name := match.Competition.Name
+	var collectionName string
+	switch comp_name {
+	case "EPL":
+		collectionName = "PremierLeague_standings"
+	case "Bundesliga":
+		collectionName = "Bundesliga_standings"
+	case "Serie A":
+		collectionName = "SerieA_standings"
+	case "Ligue 1":
+		collectionName = "Ligue1_standings"
+	case "UCL":
+		collectionName = "ChampionsLeague_standings"
+	case "La Liga":
+		collectionName = "LaLiga_standings"
+	default:
+		collectionName = fmt.Sprintf("%s_standings", match.Competition.Name)
 	}
 
-	awayRating, err := s.store.GetTeamRating(ctx, collectionName, match.AwayTeam.ID)
+	// Получаем данные о положении команд
+	homeStanding, err := s.store.GetTeamStanding(ctx, collectionName, match.HomeTeam.ID)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get home team standing: %w", err)
+	}
+	awayStanding, err := s.store.GetTeamStanding(ctx, collectionName, match.AwayTeam.ID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get away team standing: %w", err)
 	}
 
-	// Если рейтинги не найдены, возвращаем нейтральный рейтинг
-	if homeRating == nil || awayRating == nil {
+	// Если данные не найдены, возвращаем нейтральный рейтинг
+	if homeStanding == nil || awayStanding == nil {
 		return 0.5, nil
 	}
 
+	// Используем существующий калькулятор для вычисления рейтингов
+	matches := []types.Match{match} // Передаем текущий матч для расчета формы
+	homeRating := s.calculator.CalculateTeamRating(*homeStanding, matches, match.HomeTeam.ID)
+	awayRating := s.calculator.CalculateTeamRating(*awayStanding, matches, match.AwayTeam.ID)
+
 	// Вычисляем рейтинг матча
-	return s.calculator.CalculateMatchRating(match, *homeRating, *awayRating), nil
+	return s.calculator.CalculateMatchRating(match, homeRating, awayRating), nil
 }
 
 // StartRatingUpdater запускает периодическое обновление рейтингов
