@@ -2,14 +2,12 @@ package handlers
 
 import (
 	"football_tgbot/internal/bot/keyboards"
-	"football_tgbot/internal/db"
-	"football_tgbot/internal/rating"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // HandleMessage обрабатывает все входящие сообщения
-func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, store db.MatchesStore, ratingService *rating.Service) error {
+func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 	// Обрабатываем только текстовые сообщения
 	if msg.Text == "" {
 		return nil
@@ -23,8 +21,6 @@ func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, store db.Matches
 		return handleHelp(bot, msg)
 	case "/schedule":
 		return handleScheduleCommand(bot, msg)
-	case "/top":
-		return HandleTopMatches(bot, msg, store, ratingService)
 	case "/table":
 		return handleTableCommand(bot, msg)
 	default:

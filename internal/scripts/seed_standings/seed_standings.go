@@ -74,7 +74,7 @@ func main() {
 	}
 	defer client.Disconnect(context.TODO())
 
-	store := db.NewMongoDBMatchesStore(client, "football")
+	store := db.NewMongoDBStandingsStore(client, "football")
 
 	for leagueName, league := range types.Leagues {
 		var standings []types.Standing

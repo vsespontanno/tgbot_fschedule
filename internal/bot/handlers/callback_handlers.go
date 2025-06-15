@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"football_tgbot/internal/bot/keyboards"
 	resp "football_tgbot/internal/bot/response"
-	"football_tgbot/internal/db"
-	"football_tgbot/internal/rating"
+	"football_tgbot/internal/service"
 	"football_tgbot/internal/types"
 	"os"
 	"strings"
@@ -15,7 +14,7 @@ import (
 )
 
 // обработка callback запросов таких как выбор лиги, выбор команды, выбор таблицы через кнопки
-func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, ratingService *rating.Service) error {
+func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, matchService *service.MatchesService, standingsService *service.StandingsService) error {
 	// Отправляем пустой ответ, чтобы убрать "часики" у кнопки
 	callback := tgbotapi.NewCallback(query.ID, "")
 	if _, err := bot.Request(callback); err != nil {
@@ -24,25 +23,26 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, st
 
 	switch query.Data {
 	case "show_top_matches":
-		return HandleTopMatches(bot, query.Message, store, ratingService)
+		return nil
+		// return HandleTopMatches(bot, query.Message, store, ratingService)  В идеальном мире ретёрн будет такой
 	case "show_all_matches":
 		return HandleDefaultScheduleCommand(bot, query.Message)
 	}
 
 	if league, ok := keyboards.KeyboardsStandings[query.Data]; ok {
-		return HandleStandingsCallback(bot, query, store, league)
+		return HandleStandingsCallback(bot, query, standingsService, league)
 	}
 
 	if league, ok := keyboards.KeyboardsSchedule[query.Data]; ok {
-		return HandleScheduleCallback(bot, query, store, league)
+		return HandleScheduleCallback(bot, query, matchService, league)
 	}
 
 	return resp.SendMessage(bot, query.Message.Chat.ID, "Неизвестная команда.")
 }
 
 // обработка таблицы и вывод изображения
-func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
-	standings, err := store.GetStandings(context.Background(), league.CollectionName)
+func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, standingsService *service.StandingsService, league types.League) error {
+	standings, err := standingsService.HandleGetStandings(context.Background(), league.CollectionName)
 	if err != nil {
 		return fmt.Errorf("error getting standings: %w", err)
 	}
@@ -71,13 +71,13 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 
 // TODO: переписать как в standings
 // HandleScheduleCallback обрабатывает callback запросы на расписание матчей
-func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, store db.MatchesStore, league types.League) error {
+func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, league types.League) error {
 	// Отвечаем на callback запрос
 	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
 	leagueCode := strings.TrimPrefix(callback.Data, "schedule_")
 	leagueName := getLeagueName(leagueCode)
 
-	matches, err := store.GetMatches(context.Background(), "matches")
+	matches, err := service.HandleGetMatches(context.Background())
 	if err != nil {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при получении расписания матчей")
 		bot.Send(msg)

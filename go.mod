@@ -10,6 +10,11 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.4.1-0.20240526193622-a339e1f7089c // indirect
+	golang.org/x/tools v0.30.0 // indirect
+)
+
+require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
@@ -22,4 +27,5 @@ require (
 	golang.org/x/image v0.25.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
+	honnef.co/go/tools v0.6.1
 )

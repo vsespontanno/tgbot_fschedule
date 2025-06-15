@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"football_tgbot/internal/bot/handlers"
 	"football_tgbot/internal/db"
-	"football_tgbot/internal/rating"
+	"football_tgbot/internal/service"
 	"log"
 	"os"
-	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -49,32 +48,31 @@ func Start() error {
 	}
 	defer mongoClient.Disconnect(context.TODO())
 
-	mongoStore := db.NewMongoDBMatchesStore(mongoClient, "football")
+	matchesStore := db.NewMongoDBMatchesStore(mongoClient, "football")
+	standingsStore := db.NewMongoDBStandingsStore(mongoClient, "football")
 
-	// Создаем сервис рейтингов
-	ratingService := rating.NewService(mongoStore)
+	// ratingService := rating.NewService(mongoStore)
 
-	// Запускаем обновление рейтингов в отдельной горутине
-	ctx := context.Background()
-	go ratingService.StartRatingUpdater(ctx, "football", 1*time.Hour)
+	standingsService := service.NewStandingService(standingsStore)
+	matchesService := service.NewMatchesService(matchesStore)
 
-	return handleUpdates(bot, mongoStore, ratingService)
+	return handleUpdates(bot, standingsService, matchesService)
 }
 
-func handleUpdates(bot *tgbotapi.BotAPI, mongoStore db.MatchesStore, ratingService *rating.Service) error {
+func handleUpdates(bot *tgbotapi.BotAPI, standingsService *service.StandingsService, matchesService *service.MatchesService) error {
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
 	updates := bot.GetUpdatesChan(updateConfig)
 
 	for update := range updates {
 		if update.Message != nil {
-			if err := handlers.HandleMessage(bot, update.Message, mongoStore, ratingService); err != nil {
+			if err := handlers.HandleMessage(bot, update.Message); err != nil {
 				log.Printf("Error handling message: %v", err)
 			}
 		}
 
 		if update.CallbackQuery != nil {
-			if err := handlers.HandleCallbackQuery(bot, update.CallbackQuery, mongoStore, ratingService); err != nil {
+			if err := handlers.HandleCallbackQuery(bot, update.CallbackQuery, matchesService, standingsService); err != nil {
 				log.Printf("Error handling callback query: %v", err)
 			}
 		}
