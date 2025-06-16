@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"football_tgbot/internal/db"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/types"
 	"io"
@@ -115,6 +116,28 @@ func main() {
 				standings[i].Team.Name = "Real Betis"
 			case "Real Sociedad de Fútbol":
 				standings[i].Team.Name = "Real Sociedad"
+			}
+		}
+
+		for i := range standings {
+			switch standings[i].Team.ShortName {
+			case "Leverkusen":
+				standings[i].Team.ShortName = "Bayer"
+			case "Dortmund":
+				standings[i].Team.ShortName = "Borussia D."
+			case "M'gladbach":
+				standings[i].Team.ShortName = "Borussia M."
+			case "Atleti":
+				standings[i].Team.ShortName = "Atletico"
+			case "Barça":
+				standings[i].Team.ShortName = "Barcelona"
+			case "Leganés":
+				standings[i].Team.ShortName = "Leganes"
+			case "Man United":
+				standings[i].Team.ShortName = "Manchester United"
+			case "Man City":
+				standings[i].Team.ShortName = "Manchester City"
+
 			}
 		}
 

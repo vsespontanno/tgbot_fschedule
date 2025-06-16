@@ -13,7 +13,7 @@ import (
 type StandingsStore interface {
 	GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error)
 	SaveStandings(ctx context.Context, collectionName string, standings []types.Standing) error
-	GetTeamStanding(ctx context.Context, collectionName string, teamID int) (*types.Standing, error)
+	GetTeamStanding(ctx context.Context, collectionName string, id int) (int, error)
 }
 
 // структура для взаимодействия с данными матчей и команд
@@ -78,18 +78,24 @@ func (m *MongoDBStandingsStore) SaveStandings(ctx context.Context, collectionNam
 	return err
 }
 
-func (m *MongoDBStandingsStore) GetTeamStanding(ctx context.Context, collectionName string, teamID int) (*types.Standing, error) {
-	collection := m.client.Database(m.dbName).Collection(collectionName)
+func (m *MongoDBStandingsStore) GetTeamStanding(ctx context.Context, collectionName string, id int) (int, error) {
+	fullCollectionName := collectionName + "_standings"
+	collection := m.client.Database(m.dbName).Collection(fullCollectionName)
+
+	// Добавлено логирование для отладки
+	fmt.Printf("Attempting to find team standing for team ID %d in collection %s.%s\n", id, m.dbName, fullCollectionName)
 
 	var standing types.Standing
-	filter := bson.M{"team.id": teamID}
+	filter := bson.M{"team.id": id}
 	err := collection.FindOne(ctx, filter).Decode(&standing)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil
+			// Добавлено логирование при отсутствии документов
+			fmt.Printf("No document found for team ID %d in %s.%s\n", id, m.dbName, fullCollectionName)
+			return -1, nil
 		}
-		return nil, fmt.Errorf("error finding team standing: %w", err)
+		return 0, fmt.Errorf("error finding team standing for ID %d in %s: %w", id, fullCollectionName, err)
 	}
 
-	return &standing, nil
+	return standing.Position, nil
 }

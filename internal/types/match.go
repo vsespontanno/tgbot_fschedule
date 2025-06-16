@@ -23,6 +23,7 @@ type Match struct {
 			Away int `json:"away"`
 		} `json:"fullTime"`
 	} `json:"score"`
+	Rating float64 `json:"rating"`
 }
 
 // структура для хранения информации о матчах
@@ -34,17 +35,6 @@ type MatchesResponse struct {
 type Area struct {
 	Name string `json:"name"`
 	Code string `json:"code"`
-}
-
-// структура для хранения информации о команде
-type Team struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	ShortName string `json:"shortName"`
-	Tla       string `json:"tla"`
-	CrestURL  string `json:"crestUrl"`
-	Area      Area   `json:"area"`
-	Founded   int    `json:"founded"`
 }
 
 // структура для хранения информации о таблице
