@@ -15,6 +15,7 @@ type Config struct {
 	PostgresPass       string
 	PostgresDB         string
 	PostgresHost       string
+	PostgresPort       string
 }
 
 func LoadConfig() *Config {
@@ -27,9 +28,10 @@ func LoadConfig() *Config {
 		TelegramToken:      os.Getenv("TELEGRAM_BOT_API_KEY"),
 		FootballDataAPIKey: os.Getenv("FOOTBALL_DATA_API_KEY"),
 		MongoURI:           os.Getenv("MONGODB_URI"),
-		PostgresUser:       os.Getenv("POSTGRES_USER"),
-		PostgresPass:       os.Getenv("POSTGRES_PASSWORD"),
-		PostgresDB:         os.Getenv("POSTGRES_DB"),
-		PostgresHost:       os.Getenv("POSTGRES_HOST"),
+		PostgresUser:       os.Getenv("PG_USER"),
+		PostgresPass:       os.Getenv("PG_PASSWORD"),
+		PostgresDB:         os.Getenv("PG_DB"),
+		PostgresHost:       os.Getenv("PG_HOST"),
+		PostgresPort:       os.Getenv("PG_PORT"),
 	}
 }

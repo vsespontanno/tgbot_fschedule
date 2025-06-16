@@ -1,12 +1,9 @@
 -- +goose Up
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    chat_id BIGINT UNIQUE NOT NULL,
-    username TEXT,
-    first_name TEXT,
-    last_name TEXT,
-    registered_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    telegram_id BIGINT NOT NULL UNIQUE,
+    username VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
 -- +goose Down
 DROP TABLE IF EXISTS users;

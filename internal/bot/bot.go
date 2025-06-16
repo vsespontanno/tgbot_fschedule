@@ -4,32 +4,19 @@ import (
 	"context"
 	"fmt"
 	"football_tgbot/internal/bot/handlers"
+	"football_tgbot/internal/config"
 	"football_tgbot/internal/db"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
+	pgRepo "football_tgbot/internal/repository/postgres"
 	"football_tgbot/internal/service"
 	"log"
-	"os"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/joho/godotenv"
 )
 
 func Start() error {
-	if err := godotenv.Load(); err != nil {
-		return fmt.Errorf("error loading .env file: %w", err)
-	}
-
-	botToken := os.Getenv("TELEGRAM_BOT_API_KEY")
-	if botToken == "" {
-		return fmt.Errorf("TELEGRAM_BOT_API_KEY is not set")
-	}
-
-	mongoURI := os.Getenv("MONGODB_URI")
-	if mongoURI == "" {
-		return fmt.Errorf("MONGODB_URI is not set")
-	}
-
-	bot, err := tgbotapi.NewBotAPI(botToken)
+	cfg := config.LoadConfig()
+	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)
 	}
@@ -38,31 +25,37 @@ func Start() error {
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
 	// MongoDB connection
-	mongoClient, err := db.ConnectToMongoDB(mongoURI)
+	mongoClient, err := db.ConnectToMongoDB(cfg.MongoURI)
 	if err != nil {
 		return fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
 	defer mongoClient.Disconnect(context.TODO())
-
+	pg, err := db.ConnectToPostgres(cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresDB, cfg.PostgresHost, cfg.PostgresPort)
+	if err != nil {
+		return fmt.Errorf("failed to connect to Postgres: %w", err)
+	}
+	defer pg.Close()
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
+	userStore := pgRepo.NewPGUserStore(pg)
 
 	// ratingService := rating.NewService(mongoStore)
 
 	standingsService := service.NewStandingService(standingsStore)
 	matchesService := service.NewMatchesService(matchesStore)
+	userService := service.NewUserService(userStore)
 
-	return handleUpdates(bot, standingsService, matchesService)
+	return handleUpdates(bot, standingsService, matchesService, userService)
 }
 
-func handleUpdates(bot *tgbotapi.BotAPI, standingsService *service.StandingsService, matchesService *service.MatchesService) error {
+func handleUpdates(bot *tgbotapi.BotAPI, standingsService *service.StandingsService, matchesService *service.MatchesService, userService *service.UserService) error {
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
 	updates := bot.GetUpdatesChan(updateConfig)
 
 	for update := range updates {
 		if update.Message != nil {
-			if err := handlers.HandleMessage(bot, update.Message); err != nil {
+			if err := handlers.HandleMessage(bot, update.Message, userService); err != nil {
 				log.Printf("Error handling message: %v", err)
 			}
 		}

@@ -1,13 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"football_tgbot/internal/bot/keyboards"
+	"football_tgbot/internal/service"
+	"football_tgbot/internal/types"
+	"log"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 // HandleMessage обрабатывает все входящие сообщения
-func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
+func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *service.UserService) error {
 	// Обрабатываем только текстовые сообщения
 	if msg.Text == "" {
 		return nil
@@ -16,7 +20,7 @@ func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 	// Обработка команд
 	switch msg.Text {
 	case "/start":
-		return handleStart(bot, msg)
+		return handleStart(bot, msg, userService)
 	case "/help":
 		return handleHelp(bot, msg)
 	case "/schedule":
@@ -29,7 +33,19 @@ func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 }
 
 // handleStart обрабатывает команду /start
-func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
+func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *service.UserService) error {
+	ctx := context.Background()
+	user := &types.User{
+		TelegramID: msg.Chat.ID,
+		Username:   msg.Chat.UserName,
+	}
+
+	err := userService.SaveUser(ctx, user)
+	if err != nil {
+		log.Printf("error saving user: %v", err)
+		// можно отправить сообщение об ошибке
+		return err
+	}
 	response := "Привет! Я бот для отслеживания футбольных матчей. Доступные команды:\n" +
 		"/schedule - показать расписание всех матчей\n" +
 		"/top - показать расписание топовых матчей\n" +
@@ -37,7 +53,7 @@ func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 		"/help - показать справку"
 
 	msgConfig := tgbotapi.NewMessage(msg.Chat.ID, response)
-	_, err := bot.Send(msgConfig)
+	_, err = bot.Send(msgConfig)
 	return err
 }
 
