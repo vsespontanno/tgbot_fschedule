@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"football_tgbot/internal/db"
+	mongoRepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/types"
 	"io"
 	"log"
@@ -74,7 +74,7 @@ func main() {
 	}
 	defer client.Disconnect(context.TODO())
 
-	store := db.NewMongoDBStandingsStore(client, "football")
+	store := mongoRepo.NewMongoDBStandingsStore(client, "football")
 
 	for leagueName, league := range types.Leagues {
 		var standings []types.Standing

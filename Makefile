@@ -19,3 +19,8 @@ drop:
 
 test:
 	@go test -v ./...
+
+migrate-up: 
+	goose -dir ./internal/migrations postgres "user=bot_user dbname=telegram_bot password=Gorilla95 sslmode=disable host=localhost" up
+migrate-down: 
+	goose -dir ./internal/migrations postgres "user=bot_user dbname=telegram_bot password=Gorilla95 sslmode=disable host=localhost" down

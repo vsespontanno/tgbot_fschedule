@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"football_tgbot/internal/db"
+	db "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/types"
 )
 

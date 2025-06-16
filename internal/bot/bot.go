@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"football_tgbot/internal/bot/handlers"
 	"football_tgbot/internal/db"
+	mongoRepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/service"
 	"log"
 	"os"
@@ -28,11 +29,6 @@ func Start() error {
 		return fmt.Errorf("MONGODB_URI is not set")
 	}
 
-	postgresURI := os.Getenv("POSTGRES_URI")
-	if postgresURI == "" {
-		return fmt.Errorf("POSTGRES_URI is not set")
-	}
-
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)
@@ -48,8 +44,8 @@ func Start() error {
 	}
 	defer mongoClient.Disconnect(context.TODO())
 
-	matchesStore := db.NewMongoDBMatchesStore(mongoClient, "football")
-	standingsStore := db.NewMongoDBStandingsStore(mongoClient, "football")
+	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
+	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
 
 	// ratingService := rating.NewService(mongoStore)
 

@@ -2,10 +2,7 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-
-	"football_tgbot/internal/config"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -27,19 +24,4 @@ func ConnectToMongoDB(uri string) (*mongo.Client, error) {
 	}
 	fmt.Println("Connected to MongoDB!")
 	return client, nil
-}
-
-type PG struct {
-	Conn *sql.DB
-}
-
-func NewPostgresDB(cfg *config.Config) (*PG, error) {
-	dsn := fmt.Sprintf("user=%s password=%s dbname=%s host=%s sslmode=disable",
-		cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresDB, cfg.PostgresHost)
-	db, err := sql.Open("pgx", dsn)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PG{Conn: db}, nil
 }
