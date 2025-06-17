@@ -17,7 +17,7 @@ import (
 )
 
 func getLeagueStandings(apiKey, leagueCode string) ([]types.Standing, error) {
-	url := fmt.Sprintf("https://api.football-data.org/v4/competitions/%s/standings", leagueCode)
+	url := fmt.Sprintf("https://api.football-data.org/v4/competitions/%s/standings?season=2024", leagueCode)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -96,6 +96,16 @@ func main() {
 		if len(standings) == 0 {
 			log.Printf("No standings found for %s\n", leagueName)
 			continue
+		}
+
+		if leagueName == "SerieA" {
+			fmt.Println("Standings:")
+			fmt.Println(standings)
+			for _, standing := range standings {
+				fmt.Printf("Position: %d, Team: %s, Points: %d\n", standing.Position, standing.Team.Name, standing.Points)
+			}
+		} else {
+			fmt.Println("mtotfuch", leagueName)
 		}
 
 		for i := range standings {

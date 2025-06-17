@@ -5,15 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"football_tgbot/internal/db"
+	"football_tgbot/internal/rating"
+	mongorepo "football_tgbot/internal/repository/mongodb"
+	"football_tgbot/internal/service"
 	"football_tgbot/internal/types"
 	"io"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -30,31 +33,55 @@ func main() {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
 
-	today := time.Now().Format("2006-01-02")
-	tomorrow := time.Now().Add(24 * time.Hour).Format("2006-01-02")
+	today := "2025-01-15"
+	to := "2025-01-20"
+	log.Printf("Fetching matches from %s to %s…", today, to)
+
 	mongoURI := os.Getenv("MONGODB_URI")
 
 	// Подключение к MongoDB
-	client, err := db.ConnectToMongoDB(mongoURI)
+	mongoClient, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	ctx := context.Background()
+
+	standingsStore := mongorepo.NewMongoDBStandingsStore(mongoClient, "football")
+	teamsStore := mongorepo.NewMongoDBTeamsStore(mongoClient, "football")
+	standingsService := service.NewStandingService(standingsStore)
+	teamsService := service.NewTeamsService(teamsStore)
+
 	httpclient := &http.Client{}
-	matches, err := getMatchesSchedule(apiKey, today, tomorrow, httpclient)
+
+	matches, err := getMatchesSchedule(apiKey, today, to, httpclient, mongoClient)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = saveMatchesToMongoDB(client, matches, today)
+	err = saveMatchesToMongoDB(mongoClient, matches, today)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("Successfully saved %d matches\n", len(matches))
+	for _, match := range matches {
+		rating, err := giveRatingToMatch(ctx, match, teamsService, standingsService)
+		if err != nil {
+			log.Printf("Error calculating rating for match %v vs %v; error: %v; skipping\n", match.HomeTeam.Name, match.AwayTeam.Name, err)
+			continue
 
-	client.Disconnect(context.TODO())
+		}
+		match.Rating = rating
+		err = updateMatchRatingInMongoDB(mongoClient, match, rating)
+		if err != nil {
+			log.Printf("Error updating match rating for match %v; error: %v \n", match, err)
+		}
+	}
+
+	mongoClient.Disconnect(context.TODO())
 }
 
-func getMatchesSchedule(apiKey string, today string, tomorrow string, client *http.Client) ([]types.Match, error) {
+func getMatchesSchedule(apiKey string, today string, tomorrow string, httpclient *http.Client, mongoClient *mongo.Client) ([]types.Match, error) {
+
 	url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", today, tomorrow)
 	// req, err := http.NewRequest("GET", today)
 	req, err := http.NewRequest("GET", url, nil)
@@ -64,7 +91,7 @@ func getMatchesSchedule(apiKey string, today string, tomorrow string, client *ht
 
 	req.Header.Add("X-Auth-Token", apiKey)
 
-	resp, err := client.Do(req)
+	resp, err := httpclient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %v", err)
 	}
@@ -179,6 +206,30 @@ func saveMatchesToMongoDB(client *mongo.Client, matches []types.Match, today str
 	_, err := collection.InsertMany(context.TODO(), documents)
 	if err != nil {
 		return fmt.Errorf("error inserting matches: %v", err)
+	}
+
+	return nil
+}
+
+func giveRatingToMatch(ctx context.Context, match types.Match, teamsService *service.TeamsService, standingsService *service.StandingsService) (float64, error) {
+
+	rating, err := rating.CalculateRatingOfMatch(ctx, match, teamsService, standingsService)
+	if err != nil {
+		return 0, fmt.Errorf("error calculating rating for match %d: %w", match.ID, err)
+	}
+	return rating, nil
+
+}
+
+func updateMatchRatingInMongoDB(client *mongo.Client, match types.Match, rating float64) error {
+	collection := client.Database("football").Collection("matches")
+
+	filter := bson.M{"id": match.ID}
+	update := bson.M{"$set": bson.M{"rating": rating}}
+
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		return fmt.Errorf("error updating match rating for ID %d: %w", match.ID, err)
 	}
 
 	return nil

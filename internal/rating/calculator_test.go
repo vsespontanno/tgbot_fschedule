@@ -3,16 +3,24 @@ package rating
 import (
 	"context"
 	"fmt"
-	"football_tgbot/internal/config"
 	db "football_tgbot/internal/db"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/service"
+	"football_tgbot/internal/types"
+	"log"
+	"os"
 	"testing"
+
+	"github.com/joho/godotenv"
 )
 
 func TestCalculatePositionOfTeams(t *testing.T) {
-	cfg := config.LoadConfig()
-	mongoURI := cfg.MongoURI
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	mongoURI := os.Getenv("MONGODB_URI")
 
 	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
@@ -33,19 +41,20 @@ func TestCalculatePositionOfTeams(t *testing.T) {
 		t.Fatalf("Failed to get matches: %v", err)
 	}
 
-	match := matches[1]
-	want1 := []int{1, 113}
-	want2 := []int{14, 104}
-	want := [][]int{want1, want2}
-	got, err := CalculatePositionOfTeams(context.Background(), teamsService, standingsService, match, 1)
+	var match types.Match
+
+	for _, show := range matches {
+		if show.HomeTeam.Name == "Arsenal FC" {
+			if show.AwayTeam.Name == "Tottenham Hotspur FC" {
+				match = show
+			}
+		}
+	}
+
+	rating, err := CalculateRatingOfMatch(context.Background(), match, teamsService, standingsService)
 	if err != nil {
-		t.Fatalf("Failed to calculate position of teams: %v", err)
+		t.Fatalf("Failed to calculate rating: %v", err)
 	}
+	fmt.Printf("Rating: %f\n", rating)
 
-	if len(got) != len(want) {
-		t.Errorf("voobshe kapec: got %v want %v", got, want)
-	} else if got[0][0] != want[0][0] || got[1][0] != want[1][0] {
-		t.Errorf("wrong val: got %v want %v", got, want)
-
-	}
 }

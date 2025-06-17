@@ -47,8 +47,7 @@ func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *servi
 		return err
 	}
 	response := "Привет! Я бот для отслеживания футбольных матчей. Доступные команды:\n" +
-		"/schedule - показать расписание всех матчей\n" +
-		"/top - показать расписание топовых матчей\n" +
+		"/schedule - показать расписание матчей\n" +
 		"/table - показать турнирную таблицу\n" +
 		"/help - показать справку"
 
@@ -61,7 +60,6 @@ func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *servi
 func handleHelp(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 	response := "Привет! Я бот для отслеживания футбольных матчей. Доступные команды:\n" +
 		"/schedule - показать расписание всех матчей\n" +
-		"/top - показать расписание топовых матчей\n" +
 		"/table - показать турнирную таблицу\n" +
 		"/help - показать справку"
 

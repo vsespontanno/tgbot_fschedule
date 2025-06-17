@@ -8,6 +8,7 @@ import (
 	"football_tgbot/internal/service"
 	"football_tgbot/internal/types"
 	"os"
+	"sort"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -23,8 +24,7 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, ma
 
 	switch query.Data {
 	case "show_top_matches":
-		return nil
-		// return HandleTopMatches(bot, query.Message, store, ratingService)  В идеальном мире ретёрн будет такой
+		return HandleTopMatches(bot, query, matchService)
 	case "show_all_matches":
 		return HandleDefaultScheduleCommand(bot, query.Message)
 	}
@@ -152,4 +152,43 @@ func getLeagueName(code string) string {
 	default:
 		return code
 	}
+}
+
+func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService) error {
+	ctx := context.Background()
+	matches, err := service.HandleGetMatches(ctx)
+	if err != nil {
+		return err
+	}
+
+	sort.Slice(matches, func(i, j int) bool {
+		return matches[i].Rating > matches[j].Rating
+	})
+
+	if len(matches) > 13 {
+		matches = matches[:13]
+	}
+
+	if len(matches) == 0 {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "На ближайшие дни нет топовых матчей.")
+		bot.Send(msg)
+		return nil
+	}
+
+	buf, err := GenerateScheduleImage(matches)
+	if err != nil {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием топовых матчей")
+		bot.Send(msg)
+		return err
+	}
+
+	photo := tgbotapi.FileBytes{
+		Name:  "top_matches_schedule.png",
+		Bytes: buf.Bytes(),
+	}
+	msg := tgbotapi.NewPhoto(callback.Message.Chat.ID, photo)
+	_, err = bot.Send(msg)
+
+	return err
+
 }

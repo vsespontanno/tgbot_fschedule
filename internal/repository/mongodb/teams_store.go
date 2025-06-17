@@ -42,7 +42,7 @@ func (m *MongoDBTeamsStore) GetAllTeams(ctx context.Context, collectionName stri
 
 func (m *MongoDBTeamsStore) GetTeamLeague(ctx context.Context, collectionName string, id int) (string, error) {
 	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
-
+	fmt.Println(collectionName)
 	var standing types.Standing
 	filter := bson.M{"team.id": id}
 	err := collection.FindOne(ctx, filter).Decode(&standing)
