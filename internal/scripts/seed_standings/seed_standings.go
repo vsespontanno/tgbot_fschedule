@@ -81,6 +81,9 @@ func main() {
 		var standings []types.Standing
 		var err error
 		for i := 0; i < 3; i++ { // Retry up to 3 times
+			if league.Code == "CL" {
+				break
+			}
 			standings, err = getLeagueStandings(apiKey, league.Code)
 			if err == nil {
 				break // Success, exit retry loop
@@ -96,16 +99,6 @@ func main() {
 		if len(standings) == 0 {
 			log.Printf("No standings found for %s\n", leagueName)
 			continue
-		}
-
-		if leagueName == "SerieA" {
-			fmt.Println("Standings:")
-			fmt.Println(standings)
-			for _, standing := range standings {
-				fmt.Printf("Position: %d, Team: %s, Points: %d\n", standing.Position, standing.Team.Name, standing.Points)
-			}
-		} else {
-			fmt.Println("mtotfuch", leagueName)
 		}
 
 		for i := range standings {
@@ -157,6 +150,5 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("Successfully saved standings for %s\n", leagueName)
 	}
 }

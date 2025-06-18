@@ -17,15 +17,20 @@ import (
 // возвращает *mongo.Client и ошибку
 
 func ConnectToMongoDB(uri string) (*mongo.Client, error) {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
+	clientOptions := options.Client().ApplyURI(uri)
+	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create MongoDB client: %w", err)
 	}
 
-	err = client.Ping(context.TODO(), nil)
+	// Проверяем соединение
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second) // 5 секунд таймаут для пинга
+	defer cancel()
+	err = client.Ping(ctx, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
+
 	fmt.Println("Connected to MongoDB!")
 	return client, nil
 }
