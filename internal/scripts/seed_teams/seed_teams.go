@@ -90,6 +90,8 @@ func main() {
 		}
 		for i := range teams {
 			switch teams[i].Name {
+			case "Sevilla FC":
+				teams[i].ShortName = "Sevilla"
 			case "Wolverhampton Wanderers FC":
 				teams[i].Name = "Wolverhampton FC"
 			case "Borussia Mönchengladbach":
@@ -97,7 +99,7 @@ func main() {
 			case "FC Internazionale Milano":
 				teams[i].Name = "Inter"
 			case "Club Atlético de Madrid":
-				teams[i].Name = "AtLetico Madrid"
+				teams[i].Name = "Atletico Madrid"
 			case "RCD Espanyol de Barcelona":
 				teams[i].Name = "Espanyol"
 			case "Rayo Vallecano de Madrid":
@@ -111,6 +113,8 @@ func main() {
 
 		for i := range teams {
 			switch teams[i].ShortName {
+			case "Sevilla FC":
+				teams[i].ShortName = "Sevilla"
 			case "Leverkusen":
 				teams[i].ShortName = "Bayer"
 			case "Dortmund":

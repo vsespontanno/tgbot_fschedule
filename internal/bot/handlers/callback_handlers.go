@@ -134,7 +134,7 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 func getLeagueName(code string) string {
 	switch code {
 	case "laliga":
-		return "La Liga"
+		return "LaLiga"
 	case "epl":
 		return "EPL"
 	case "primeira":
@@ -144,7 +144,7 @@ func getLeagueName(code string) string {
 	case "bundesliga":
 		return "Bundesliga"
 	case "seriea":
-		return "Serie A"
+		return "SerieA"
 	case "ucl":
 		return "UCL"
 	case "uel":

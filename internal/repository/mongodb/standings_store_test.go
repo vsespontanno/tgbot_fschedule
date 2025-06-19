@@ -2,9 +2,12 @@ package db
 
 import (
 	"context"
-	"football_tgbot/internal/config"
 	"football_tgbot/internal/db"
+	"log"
+	"os"
 	"testing"
+
+	"github.com/joho/godotenv"
 )
 
 var test1 int = 57
@@ -12,8 +15,12 @@ var collection = "PremierLeague"
 var ctx context.Context = context.Background()
 
 func TestGetTeamStanding(t *testing.T) {
-	cfg := config.LoadConfig()
-	mongoURI := cfg.MongoURI
+	err := godotenv.Load("../../../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	mongoURI := os.Getenv("MONGODB_URI")
 
 	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {

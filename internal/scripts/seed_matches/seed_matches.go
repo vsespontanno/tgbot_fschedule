@@ -33,8 +33,8 @@ func main() {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
 
-	today := "2025-01-15"
-	to := "2025-01-20"
+	today := "2025-05-07"
+	to := "2025-05-14"
 	log.Printf("Fetching matches from %s to %s…", today, to)
 
 	mongoURI := os.Getenv("MONGODB_URI")
@@ -64,6 +64,7 @@ func main() {
 	}
 	fmt.Printf("Successfully saved %d matches\n", len(matches))
 	for _, match := range matches {
+		fmt.Println(match.HomeTeam.Name, match.AwayTeam.Name)
 		rating, err := giveRatingToMatch(ctx, match, teamsService, standingsService)
 		if err != nil {
 			log.Printf("Error calculating rating for match %v vs %v; error: %v; skipping\n", match.HomeTeam.Name, match.AwayTeam.Name, err)
@@ -102,11 +103,15 @@ func getMatchesSchedule(apiKey string, today string, tomorrow string, httpclient
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
-
 	var MatchesResponse types.MatchesResponse
 	err = json.Unmarshal(body, &MatchesResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
+	}
+
+	leaguesSet := make(map[string]struct{})
+	for _, match := range MatchesResponse.Matches {
+		leaguesSet[match.Competition.Name] = struct{}{}
 	}
 	for i := range MatchesResponse.Matches {
 		switch MatchesResponse.Matches[i].HomeTeam.Name {
@@ -152,35 +157,37 @@ func getMatchesSchedule(apiKey string, today string, tomorrow string, httpclient
 			MatchesResponse.Matches[i].Competition.Name = "UCL"
 		case "UEFA Europa League":
 			MatchesResponse.Matches[i].Competition.Name = "UEL"
-		case "Primera División":
-			MatchesResponse.Matches[i].Competition.Name = "La Liga"
+		case "Primera Division":
+			MatchesResponse.Matches[i].Competition.Name = "LaLiga"
 		case "Primeira Liga":
 			MatchesResponse.Matches[i].Competition.Name = "Primeira"
 		case "Premier League":
 			MatchesResponse.Matches[i].Competition.Name = "EPL"
 		case "Serie A":
-			MatchesResponse.Matches[i].Competition.Name = "Serie A"
+			MatchesResponse.Matches[i].Competition.Name = "SerieA"
 		case "Bundesliga":
 			MatchesResponse.Matches[i].Competition.Name = "Bundesliga"
+		case "Ligue 1":
+			MatchesResponse.Matches[i].Competition.Name = "Ligue1"
 		case "Eredivisie":
 			MatchesResponse.Matches[i].Competition.Name = "Eredivisie"
 		}
-
+	}
+	leaguesSet2 := make(map[string]struct{})
+	for _, match := range MatchesResponse.Matches {
+		leaguesSet2[match.Competition.Name] = struct{}{}
 	}
 
 	// Фильтруем матчи только нужных лиг
 	var filteredMatches []types.Match
 	allowedLeagues := map[string]bool{
-		"La Liga":    true,
+		"LaLiga":     true,
 		"EPL":        true,
-		"Primeira":   true,
-		"Eredivisie": true,
 		"Bundesliga": true,
-		"Serie A":    true,
+		"SerieA":     true,
+		"Ligue1":     true,
 		"UCL":        true,
-		"UEL":        true,
 	}
-
 	for _, match := range MatchesResponse.Matches {
 		if allowedLeagues[match.Competition.Name] {
 			filteredMatches = append(filteredMatches, match)

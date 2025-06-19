@@ -12,6 +12,7 @@ import (
 type TeamsStore interface {
 	GetAllTeams(ctx context.Context, collectionName string) ([]types.Team, error)
 	GetTeamLeague(ctx context.Context, collectionName string, id int) (string, error)
+	GetTeamsShortName(ctx context.Context, collectionName string, fullName string) (string, error)
 }
 
 type MongoDBTeamsStore struct {
@@ -41,16 +42,29 @@ func (m *MongoDBTeamsStore) GetAllTeams(ctx context.Context, collectionName stri
 }
 
 func (m *MongoDBTeamsStore) GetTeamLeague(ctx context.Context, collectionName string, id int) (string, error) {
+	if collectionName == "" {
+		return "ПУСТАЯ СТРОКА ИДИОТ", nil
+	} else {
+		fmt.Printf("collectionName: %s\n", collectionName)
+	}
 	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
-	fmt.Println(collectionName)
+
 	var standing types.Standing
 	filter := bson.M{"team.id": id}
 	err := collection.FindOne(ctx, filter).Decode(&standing)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return "Wrong League", nil
-		}
-		return "", fmt.Errorf("error finding team standing: %w", err)
+		return "Wrong League", nil
 	}
 	return collectionName, nil
+}
+
+func (m *MongoDBTeamsStore) GetTeamsShortName(ctx context.Context, collectionName string, fullName string) (string, error) {
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+	var team types.Team
+	filter := bson.M{"name": fullName}
+	err := collection.FindOne(ctx, filter).Decode(&team)
+	if err != nil {
+		return "", err
+	}
+	return team.ShortName, nil
 }

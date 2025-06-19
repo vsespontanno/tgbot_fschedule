@@ -30,10 +30,10 @@ func TestCalculatePositionOfTeams(t *testing.T) {
 	fmt.Println("Connected to MongoDB!")
 
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(client, "football")
-	standingsStore := mongoRepo.NewMongoDBStandingsStore(client, "football")
+	// standingsStore := mongoRepo.NewMongoDBStandingsStore(client, "football")
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(client, "football")
 	matchesService := service.NewMatchesService(matchesStore)
-	standingsService := service.NewStandingService(standingsStore)
+	// standingsService := service.NewStandingService(standingsStore)
 	teamsService := service.NewTeamsService(teamsStore)
 
 	matches, err := matchesService.HandleGetMatches(context.Background())
@@ -44,17 +44,19 @@ func TestCalculatePositionOfTeams(t *testing.T) {
 	var match types.Match
 
 	for _, show := range matches {
-		if show.HomeTeam.Name == "Arsenal FC" {
-			if show.AwayTeam.Name == "Tottenham Hotspur FC" {
+		if show.HomeTeam.Name == "Sevilla FC" {
+			if show.AwayTeam.Name == "UD Las Palmas" {
 				match = show
 			}
 		}
 	}
 
-	rating, err := CalculateRatingOfMatch(context.Background(), match, teamsService, standingsService)
+	homeLeague, awayLeague, err := getLeaguesForTeams(context.Background(), teamsService, match.HomeTeam.ID, match.AwayTeam.ID)
 	if err != nil {
-		t.Fatalf("Failed to calculate rating: %v", err)
+		t.Fatalf("Failed to get leagues for teams: %v", err)
 	}
-	fmt.Printf("Rating: %f\n", rating)
+	if homeLeague != "LaLiga" || awayLeague != "LaLiga" {
+		t.Errorf("pizdec wanted %s and %s, got %s and %s", "LaLiga", "LaLiga", homeLeague, awayLeague)
+	}
 
 }

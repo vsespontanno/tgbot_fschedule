@@ -83,7 +83,6 @@ func (m *MongoDBStandingsStore) GetTeamStanding(ctx context.Context, collectionN
 	collection := m.client.Database(m.dbName).Collection(fullCollectionName)
 
 	// Добавлено логирование для отладки
-	fmt.Printf("Attempting to find team standing for team ID %d in collection %s.%s\n", id, m.dbName, fullCollectionName)
 
 	var standing types.Standing
 	filter := bson.M{"team.id": id}

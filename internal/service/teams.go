@@ -31,3 +31,11 @@ func (s *TeamsService) HandleGetLeague(ctx context.Context, collectionName strin
 	}
 	return league, nil
 }
+
+func (s *TeamsService) HandleGetTeamShortName(ctx context.Context, collectionName string, fullName string) (string, error) {
+	shortName, err := s.teamsStore.GetTeamsShortName(ctx, collectionName, fullName)
+	if err != nil {
+		return "", err
+	}
+	return shortName, nil
+}

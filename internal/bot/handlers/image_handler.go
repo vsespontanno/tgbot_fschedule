@@ -11,7 +11,7 @@ import (
 )
 
 func GenerateTableImage(data []types.Standing, filename string) error {
-	fmt.Printf("Generating image for гафоиафгаиыфиалфи %d standings\n", len(data))
+	fmt.Printf("Generating image for  %d standings\n", len(data))
 	if len(data) == 0 {
 		return fmt.Errorf("no standings data provided")
 	}
@@ -51,7 +51,7 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 	dc.SetColor(color.RGBA{230, 230, 230, 255}) // Light gray text for better contrast
 
 	// Загружаем шрифт
-	if err := dc.LoadFontFace("app/fonts/NotoSans-Regular.ttf", fontSize); err != nil {
+	if err := dc.LoadFontFace("fonts/NotoSans-Regular.ttf", fontSize); err != nil {
 		fmt.Println("Error loading font:", err)
 
 		return fmt.Errorf("error loading font: %v", err)
@@ -172,7 +172,7 @@ func GenerateScheduleImage(matches []types.Match) (*bytes.Buffer, error) {
 	dc.Clear()
 
 	// Загружаем шрифт
-	if err := dc.LoadFontFace("app/fonts/NotoSans-Regular.ttf", fontSize); err != nil {
+	if err := dc.LoadFontFace("fonts/NotoSans-Regular.ttf", fontSize); err != nil {
 		fmt.Println("Error loading font:", err)
 
 		return nil, fmt.Errorf("error loading font: %v", err)
