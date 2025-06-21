@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"football_tgbot/internal/bot/handlers"
+	"football_tgbot/internal/cache"
 	"football_tgbot/internal/config"
 	"football_tgbot/internal/db"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
@@ -30,25 +31,34 @@ func Start() error {
 		return fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
 	defer mongoClient.Disconnect(context.TODO())
+
+	// PostgreSQL connection
 	pg, err := db.ConnectToPostgres(cfg.PostgresUser, cfg.PostgresPass, cfg.PostgresDB, cfg.PostgresHost, cfg.PostgresPort)
 	if err != nil {
 		return fmt.Errorf("failed to connect to Postgres: %w", err)
 	}
 	defer pg.Close()
+
+	// Redis connection
+	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
+	if err != nil {
+		return fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+	defer redisClient.Close()
+
+	// Initialize stores and services
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
 	userStore := pgRepo.NewPGUserStore(pg)
-
-	// ratingService := rating.NewService(mongoStore)
 
 	standingsService := service.NewStandingService(standingsStore)
 	matchesService := service.NewMatchesService(matchesStore)
 	userService := service.NewUserService(userStore)
 
-	return handleUpdates(bot, standingsService, matchesService, userService)
+	return handleUpdates(bot, standingsService, matchesService, userService, redisClient)
 }
 
-func handleUpdates(bot *tgbotapi.BotAPI, standingsService *service.StandingsService, matchesService *service.MatchesService, userService *service.UserService) error {
+func handleUpdates(bot *tgbotapi.BotAPI, standingsService *service.StandingsService, matchesService *service.MatchesService, userService *service.UserService, redisClient *cache.RedisClient) error {
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
 	updates := bot.GetUpdatesChan(updateConfig)
@@ -61,7 +71,7 @@ func handleUpdates(bot *tgbotapi.BotAPI, standingsService *service.StandingsServ
 		}
 
 		if update.CallbackQuery != nil {
-			if err := handlers.HandleCallbackQuery(bot, update.CallbackQuery, matchesService, standingsService); err != nil {
+			if err := handlers.HandleCallbackQuery(bot, update.CallbackQuery, matchesService, standingsService, redisClient); err != nil {
 				log.Printf("Error handling callback query: %v", err)
 			}
 		}

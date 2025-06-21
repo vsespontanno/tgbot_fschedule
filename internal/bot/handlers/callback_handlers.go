@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"football_tgbot/internal/bot/keyboards"
 	resp "football_tgbot/internal/bot/response"
+	"football_tgbot/internal/cache"
 	"football_tgbot/internal/service"
 	"football_tgbot/internal/types"
 	"os"
@@ -15,7 +16,7 @@ import (
 )
 
 // обработка callback запросов таких как выбор лиги, выбор команды, выбор таблицы через кнопки
-func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, matchService *service.MatchesService, standingsService *service.StandingsService) error {
+func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, matchService *service.MatchesService, standingsService *service.StandingsService, redisClient *cache.RedisClient) error {
 	// Отправляем пустой ответ, чтобы убрать "часики" у кнопки
 	callback := tgbotapi.NewCallback(query.ID, "")
 	if _, err := bot.Request(callback); err != nil {
@@ -24,43 +25,39 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, ma
 
 	switch query.Data {
 	case "show_top_matches":
-		return HandleTopMatches(bot, query, matchService)
+		return HandleTopMatches(bot, query, matchService, redisClient)
 	case "show_all_matches":
 		return HandleDefaultScheduleCommand(bot, query.Message)
 	}
 
 	if league, ok := keyboards.KeyboardsStandings[query.Data]; ok {
-		return HandleStandingsCallback(bot, query, standingsService, league)
+		return HandleStandingsCallback(bot, query, standingsService, redisClient, league)
 	}
 
 	if league, ok := keyboards.KeyboardsSchedule[query.Data]; ok {
-		return HandleScheduleCallback(bot, query, matchService, league)
+		return HandleScheduleCallback(bot, query, matchService, redisClient, league)
 	}
 
 	return resp.SendMessage(bot, query.Message.Chat.ID, "Неизвестная команда.")
 }
 
 // обработка таблицы и вывод изображения
-func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, standingsService *service.StandingsService, league types.League) error {
+func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, standingsService *service.StandingsService, redisClient *cache.RedisClient, league types.League) error {
 	standings, err := standingsService.HandleGetStandings(context.Background(), league.CollectionName)
 	if err != nil {
 		return fmt.Errorf("error getting standings: %w", err)
 	}
-
-	fmt.Printf("Retrieved %d standings for %s\n", len(standings), league.CollectionName)
-	for _, s := range standings {
-		fmt.Printf("Position: %d, Team: %s, Points: %d\n", s.Position, s.Team.Name, s.Points)
-	}
-
 	imagePath := fmt.Sprintf("%s.png", league.CollectionName)
 	defer os.Remove(imagePath)
 
-	if err := GenerateTableImage(standings, imagePath); err != nil {
+	if err := GenerateTableImage(standings, imagePath, redisClient); err != nil {
 		return fmt.Errorf("error generating image: %w", err)
 	}
 
-	if err := resp.SendPhoto(bot, query.Message.Chat.ID, imagePath); err != nil {
-		return err
+	photo := tgbotapi.NewPhoto(query.Message.Chat.ID, tgbotapi.FilePath(imagePath))
+	_, err = bot.Send(photo)
+	if err != nil {
+		return fmt.Errorf("error sending image: %w", err)
 	}
 
 	// Отправляем ответ на callback query
@@ -69,9 +66,7 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 	return err
 }
 
-// TODO: переписать как в standings
-// HandleScheduleCallback обрабатывает callback запросы на расписание матчей
-func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, league types.League) error {
+func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, league types.League) error {
 	// Отвечаем на callback запрос
 	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
 	leagueCode := strings.TrimPrefix(callback.Data, "schedule_")
@@ -105,7 +100,7 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	}
 
 	// Генерируем изображение с расписанием
-	buf, err := GenerateScheduleImage(leagueMatches)
+	buf, err := GenerateScheduleImage(leagueMatches, redisClient)
 	if err != nil {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием")
 		bot.Send(msg)
@@ -154,7 +149,7 @@ func getLeagueName(code string) string {
 	}
 }
 
-func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService) error {
+func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient) error {
 	ctx := context.Background()
 	matches, err := service.HandleGetMatches(ctx)
 	if err != nil {
@@ -175,7 +170,7 @@ func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, se
 		return nil
 	}
 
-	buf, err := GenerateScheduleImage(matches)
+	buf, err := GenerateScheduleImage(matches, redisClient)
 	if err != nil {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием топовых матчей")
 		bot.Send(msg)

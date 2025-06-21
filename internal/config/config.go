@@ -16,6 +16,7 @@ type Config struct {
 	PostgresDB         string
 	PostgresHost       string
 	PostgresPort       string
+	RedisURL           string
 }
 
 func LoadConfig() *Config {
@@ -33,5 +34,6 @@ func LoadConfig() *Config {
 		PostgresDB:         os.Getenv("PG_DB"),
 		PostgresHost:       os.Getenv("PG_HOST"),
 		PostgresPort:       os.Getenv("PG_PORT"),
+		RedisURL:           os.Getenv("REDIS_URL"),
 	}
 }

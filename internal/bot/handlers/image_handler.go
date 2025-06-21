@@ -2,16 +2,34 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"football_tgbot/internal/cache"
 	"football_tgbot/internal/types"
 	"image/color"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/fogleman/gg"
+	"github.com/sirupsen/logrus"
 )
 
-func GenerateTableImage(data []types.Standing, filename string) error {
-	fmt.Printf("Generating image for  %d standings\n", len(data))
+// GenerateTableImage создает изображение турнирной таблицы и сохраняет его в файл.
+// Если изображение есть в кэше Redis, возвращает его.
+func GenerateTableImage(data []types.Standing, filename string, redisClient *cache.RedisClient) error {
+	cacheKey := "table_image: " + filename
+	const cacheTTL = 1 * time.Hour
+	ctx := context.Background()
+
+	// ПРоверка кеша
+	if cachedImage, err := redisClient.GetBytes(ctx, cacheKey); err == nil {
+		logrus.WithField("cache_key", cacheKey).Info("Cache hit for table image")
+		return os.WriteFile(filename, cachedImage, 0644)
+	} else if err.Error() != fmt.Sprintf("cache miss for key %s", cacheKey) {
+		logrus.WithField("cache_key", cacheKey).Warn("Cache error: ", err)
+	}
+
 	if len(data) == 0 {
 		return fmt.Errorf("no standings data provided")
 	}
@@ -135,13 +153,35 @@ func GenerateTableImage(data []types.Standing, filename string) error {
 		}
 		y += rowHeight
 	}
+	// Сохраняем изображение в буфер
+
+	buf := new(bytes.Buffer)
+	if err := dc.EncodePNG(buf); err != nil {
+		return fmt.Errorf("error encoding image: %v", err)
+	}
+
+	// Кэшируем пикчу
+	if err := redisClient.SetBytes(ctx, cacheKey, buf.Bytes(), cacheTTL); err != nil {
+		logrus.WithField("cache_key", cacheKey).Error("Failed to cache table image: ", err)
+	}
 
 	// Сохраняем изображение
-	return dc.SavePNG(filename)
+	return os.WriteFile(filename, buf.Bytes(), 0644)
 }
 
 // функция для генерации изображения расписания матчей
-func GenerateScheduleImage(matches []types.Match) (*bytes.Buffer, error) {
+func GenerateScheduleImage(matches []types.Match, redisClient *cache.RedisClient) (*bytes.Buffer, error) {
+	cacheKey := "schedule_image"
+	const cacheTTL = 1 * time.Hour
+	ctx := context.Background()
+
+	// Проверяем кэш
+	if cachedImage, err := redisClient.GetBytes(ctx, cacheKey); err == nil {
+		logrus.WithField("cache_key", cacheKey).Info("Cache hit for schedule image")
+		return bytes.NewBuffer(cachedImage), nil
+	} else if err.Error() != fmt.Sprintf("cache miss for key %s", cacheKey) {
+		logrus.WithField("cache_key", cacheKey).Warn("Cache error: ", err)
+	}
 
 	const (
 		width        = 780
@@ -275,9 +315,15 @@ func GenerateScheduleImage(matches []types.Match) (*bytes.Buffer, error) {
 	}
 
 	// Возвращаем буфер с изображением
+	// Сохранение изображения в буфер
 	buf := new(bytes.Buffer)
 	if err := dc.EncodePNG(buf); err != nil {
-		return nil, fmt.Errorf("error encoding image: %v", err)
+		return nil, fmt.Errorf("failed to encode PNG: %w", err)
+	}
+
+	// Кэшируем изображение
+	if err := redisClient.SetBytes(ctx, cacheKey, buf.Bytes(), cacheTTL); err != nil {
+		logrus.WithField("cache_key", cacheKey).Error("Failed to cache schedule image: ", err)
 	}
 	return buf, nil
 }

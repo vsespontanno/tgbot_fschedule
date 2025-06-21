@@ -79,7 +79,6 @@ func getLeaguesForTeams(ctx context.Context, teamsService *service.TeamsService,
 	foundHomeLeague := false
 	for leagueKey := range leagueNorm {
 		// league, getLeagueErr := teamsService.HandleGetLeague()
-		fmt.Printf("Проверяем лигу %s для домашней команды %d\n", leagueKey, homeTeamID)
 
 		league, getLeagueErr := teamsService.HandleGetLeague(ctx, leagueKey, homeTeamID)
 

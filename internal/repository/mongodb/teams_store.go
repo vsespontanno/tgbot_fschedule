@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"football_tgbot/internal/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -42,11 +41,6 @@ func (m *MongoDBTeamsStore) GetAllTeams(ctx context.Context, collectionName stri
 }
 
 func (m *MongoDBTeamsStore) GetTeamLeague(ctx context.Context, collectionName string, id int) (string, error) {
-	if collectionName == "" {
-		return "ПУСТАЯ СТРОКА ИДИОТ", nil
-	} else {
-		fmt.Printf("collectionName: %s\n", collectionName)
-	}
 	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
 
 	var standing types.Standing
