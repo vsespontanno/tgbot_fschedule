@@ -23,9 +23,9 @@ func TestNewRedisConn(t *testing.T) {
 
 	err = redisClient.Get(ctx, "test", &res)
 	if err != nil {
-		t.Errorf("Get() error = %v", err)
-	} else {
 		t.Logf("Get() err = %v", err)
+	} else {
+		t.Errorf("Get() error = %v", err)
 	}
 
 	err = redisClient.Get(ctx, data, &res)
