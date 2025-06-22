@@ -6,12 +6,16 @@ type Team struct {
 	Name      string `json:"name"`
 	ShortName string `json:"shortName"`
 	Tla       string `json:"tla"`
-	CrestURL  string `json:"crestUrl"`
-	Area      Area   `json:"area"`
 	Founded   int    `json:"founded"`
 }
 
 // структура для хранения информации о командах
 type TeamsResponse struct {
 	Teams []Team `json:"teams"`
+}
+
+type TeamForm struct {
+	Wins   int `bson:"wins" json:"wins"`
+	Losses int `bson:"losses" json:"losses"`
+	Draws  int `bson:"draws" json:"draws"`
 }

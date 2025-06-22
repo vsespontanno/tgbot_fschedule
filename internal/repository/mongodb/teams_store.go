@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"football_tgbot/internal/types"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -58,7 +59,7 @@ func (m *MongoDBTeamsStore) GetTeamsShortName(ctx context.Context, collectionNam
 	filter := bson.M{"name": fullName}
 	err := collection.FindOne(ctx, filter).Decode(&team)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error finding team with name %s: %w", fullName, err)
 	}
 	return team.ShortName, nil
 }

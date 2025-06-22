@@ -7,7 +7,9 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -31,8 +33,33 @@ func ConnectToMongoDB(uri string) (*mongo.Client, error) {
 		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
 
-	fmt.Println("Connected to MongoDB!")
+	// СОздание индекса
+	if err := createMatchesIndexes(client, "football"); err != nil {
+		return nil, fmt.Errorf("failed to create indexes: %w", err)
+	}
+
+	logrus.Info("Connected to MongoDB")
 	return client, nil
+}
+
+func createMatchesIndexes(client *mongo.Client, dbName string) error {
+	collection := client.Database(dbName).Collection("matches")
+	index := mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "homeTeam.id", Value: 1},
+			{Key: "awayTeam.id", Value: 1},
+			{Key: "date", Value: -1},
+		},
+		Options: options.Index().SetName("homeTeam.id_1_awayTeam.id_1_date_-1"),
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	_, err := collection.Indexes().CreateOne(ctx, index)
+	if err != nil {
+		return fmt.Errorf("failed to create index on matches: %w", err)
+	}
+	logrus.Info("Created index on matches collection")
+	return nil
 }
 
 func ConnectToPostgres(user, password, dbname, host, port string) (*sql.DB, error) {
