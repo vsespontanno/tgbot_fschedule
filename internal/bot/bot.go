@@ -16,7 +16,7 @@ import (
 )
 
 func Start() error {
-	cfg := config.LoadConfig()
+	cfg := config.LoadConfig("")
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)

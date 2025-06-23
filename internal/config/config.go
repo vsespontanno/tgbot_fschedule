@@ -19,8 +19,8 @@ type Config struct {
 	RedisURL           string
 }
 
-func LoadConfig() *Config {
-	err := godotenv.Load()
+func LoadConfig(opt string) *Config {
+	err := godotenv.Load(opt)
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}

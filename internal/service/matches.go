@@ -4,6 +4,8 @@ import (
 	"context"
 	db "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/types"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type MatchesService struct {
@@ -24,4 +26,23 @@ func (s *MatchesService) HandleGetMatches(ctx context.Context) ([]types.Match, e
 		return nil, err
 	}
 	return matches, nil
+}
+
+func (s *MatchesService) HandleGetMatchByID(ctx context.Context, matchID int) (types.Match, error) {
+	match, err := s.matchesStore.GetMatchByID(ctx, matchID)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return types.Match{}, nil
+		}
+		return types.Match{}, err
+	}
+	return match, nil
+}
+
+func (s *MatchesService) HandleSaveMatches(matches []types.Match, from, to string) error {
+	err := s.matchesStore.SaveMatchesToMongoDB(matches, from, to)
+	if err != nil {
+		return err
+	}
+	return nil
 }

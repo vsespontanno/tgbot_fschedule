@@ -20,8 +20,8 @@ var (
 
 	leagueNorm = map[string]float64{
 		"Champions League": 1.0,
-		"PremierLeague":    0.9, // Снижено с 0.9, чтобы ЛЧ доминировала
-		"LaLiga":           0.8, // Увеличено с 0.8
+		"PremierLeague":    0.9,
+		"LaLiga":           0.8,
 		"SerieA":           0.8,
 		"Bundesliga":       0.75,
 		"Ligue1":           0.7,
