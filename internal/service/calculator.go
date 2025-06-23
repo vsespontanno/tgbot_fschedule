@@ -1,10 +1,9 @@
-package rating
+package service
 
 import (
 	"context"
 	"fmt"
 	mongorepo "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/service"
 	"football_tgbot/internal/types"
 	"log"
 )
@@ -93,7 +92,7 @@ func calculateForm(matches []types.Match) float64 {
 }
 
 // getLeaguesForTeams определяет лиги для команд
-func getLeaguesForTeams(ctx context.Context, teamsService *service.TeamsService, homeTeamID int, awayTeamID int) (homeLeague string, awayLeague string, err error) {
+func getLeaguesForTeams(ctx context.Context, teamsService *TeamsService, homeTeamID int, awayTeamID int) (homeLeague string, awayLeague string, err error) {
 	// Логика осталась прежней
 	foundHomeLeague := false
 	for leagueKey := range leagueNorm {
@@ -138,7 +137,7 @@ func getLeaguesForTeams(ctx context.Context, teamsService *service.TeamsService,
 	return homeLeague, awayLeague, nil
 }
 
-func CalculatePositionOfTeams(ctx context.Context, teamsService *service.TeamsService, standingsService *service.StandingsService, match types.Match) (homeTeam, awayTeam float64, err error) {
+func CalculatePositionOfTeams(ctx context.Context, teamsService *TeamsService, standingsService *StandingsService, match types.Match) (homeTeam, awayTeam float64, err error) {
 	HomeID := match.HomeTeam.ID
 	AwayID := match.AwayTeam.ID
 
@@ -161,7 +160,7 @@ func CalculatePositionOfTeams(ctx context.Context, teamsService *service.TeamsSe
 	return homeTeamRating, awayTeamRating, nil
 }
 
-func CalculateRatingOfMatch(ctx context.Context, match types.Match, teamService *service.TeamsService, standingsService *service.StandingsService, matchesStore mongorepo.MatchesStore) (float64, error) {
+func CalculateRatingOfMatch(ctx context.Context, match types.Match, teamService *TeamsService, standingsService *StandingsService, matchesStore mongorepo.MatchesStore) (float64, error) {
 	// 1) Сила команд по позициям
 	homeStrength, awayStrength, err := CalculatePositionOfTeams(ctx, teamService, standingsService, match)
 	if err != nil {
@@ -217,7 +216,7 @@ func CalculateRatingOfMatch(ctx context.Context, match types.Match, teamService 
 	return rating, nil
 }
 
-func GetDerbyBonus(ctx context.Context, teamService *service.TeamsService, match types.Match) float64 {
+func GetDerbyBonus(ctx context.Context, teamService *TeamsService, match types.Match) float64 {
 	homeLeague, awayLeague, err := getLeaguesForTeams(ctx, teamService, match.HomeTeam.ID, match.AwayTeam.ID)
 	if err != nil {
 		log.Printf("Error getting leagues for derby bonus: %v", err)

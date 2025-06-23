@@ -83,7 +83,7 @@ func ConnectToPostgres(user, password, dbname, host, port string) (*sql.DB, erro
 	db.SetMaxOpenConns(25)                 // Максимальное число открытых соединений
 	db.SetMaxIdleConns(5)                  // Максимальное число бездействующих соединений
 	db.SetConnMaxLifetime(5 * time.Minute) // Максимальное время жизни соединения
-	db.SetConnMaxIdleTime(2 * time.Minute) // Максимальное время бездействия соединения
-	fmt.Println("Connected to Postgres!")
+	db.SetConnMaxIdleTime(2 * time.Minute) // Максимальное время бездействия соединения\
+	logrus.Info("Connected to Postgres")
 	return db, nil
 }

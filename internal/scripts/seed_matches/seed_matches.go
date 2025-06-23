@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"football_tgbot/internal/db"
-	"football_tgbot/internal/rating"
+	"football_tgbot/internal/infrastructure/api"
 	mongorepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/service"
 	"football_tgbot/internal/types"
@@ -18,7 +18,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -53,7 +52,8 @@ func main() {
 	teamsStore := mongorepo.NewMongoDBTeamsStore(mongoClient, "football")
 	standingsService := service.NewStandingService(standingsStore)
 	teamsService := service.NewTeamsService(teamsStore)
-	matchesService := service.NewMatchesService(matchesStore)
+	matchesService := service.NewMatchesService(matchesStore, nil)
+	footallClient := api.NewFootballAPIClient(http.DefaultClient, apiKey)
 
 	httpclient := &http.Client{}
 
@@ -66,7 +66,7 @@ func main() {
 		logrus.Infof("Successfully fetched %d historical matches", len(historicalMatches))
 	}
 
-	matches, err := matchesService.HandleReqMatches(httpclient, apiKey, from, to)
+	matches, err := footallClient.GetMatches(ctx, from, to)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,44 +76,20 @@ func main() {
 	}
 	fmt.Printf("Successfully saved %d matches\n", len(matches))
 	for _, match := range matches {
-		rating, err := giveRatingToMatch(ctx, match, teamsService, standingsService, matchesStore)
+		rating, err := service.CalculateRatingOfMatch(ctx, match, teamsService, standingsService, matchesStore)
 		if err != nil {
 			logrus.Warnf("Error calculating rating for match %v vs %v; error: %v; skipping", match.HomeTeam.Name, match.AwayTeam.Name, err)
 			continue
 
 		}
 		match.Rating = rating
-		err = updateMatchRatingInMongoDB(mongoClient, match, rating)
+		err = matchesService.HandleSaveMatchRating(ctx, match, rating)
 		if err != nil {
 			logrus.Errorf("Error updating match rating for match %v; error: %v", match, err)
 		}
 	}
 
 	mongoClient.Disconnect(context.TODO())
-}
-
-func giveRatingToMatch(ctx context.Context, match types.Match, teamsService *service.TeamsService, standingsService *service.StandingsService, matchesStore mongorepo.MatchesStore) (float64, error) {
-
-	rating, err := rating.CalculateRatingOfMatch(ctx, match, teamsService, standingsService, matchesStore)
-	if err != nil {
-		return 0, fmt.Errorf("error calculating rating for match %d: %w", match.ID, err)
-	}
-	return rating, nil
-
-}
-
-func updateMatchRatingInMongoDB(client *mongo.Client, match types.Match, rating float64) error {
-	collection := client.Database("football").Collection("matches")
-
-	filter := bson.M{"id": match.ID}
-	update := bson.M{"$set": bson.M{"rating": rating}}
-
-	_, err := collection.UpdateOne(context.TODO(), filter, update)
-	if err != nil {
-		return fmt.Errorf("error updating match rating for ID %d: %w", match.ID, err)
-	}
-
-	return nil
 }
 
 // Функция для получения исторических матчей с 2025-01-01 по 2025-05-06
@@ -192,89 +168,9 @@ func fetchMatchesForPeriod(apiKey string, startDate string, endDate string, http
 		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
 	}
 
-	// Применяем маппинг названий команд и лиг
-	for i := range MatchesResponse.Matches {
-		// Маппинг для домашних команд
-		switch MatchesResponse.Matches[i].HomeTeam.Name {
-		case "Wolverhampton Wanderers FC":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Wolverhampton FC"
-		case "Borussia Mönchengladbach":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Borussia Gladbach"
-		case "FC Internazionale Milano":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Inter"
-		case "Club Atlético de Madrid":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Atletico Madrid"
-		case "RCD Espanyol de Barcelona":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Espanyol"
-		case "Rayo Vallecano de Madrid":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Rayo Vallecano"
-		case "Real Betis Balompié":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Real Betis"
-		case "Real Sociedad de Fútbol":
-			MatchesResponse.Matches[i].HomeTeam.Name = "Real Sociedad"
-		}
+	Matches := api.Mapper(MatchesResponse)
 
-		// Маппинг для гостевых команд
-		switch MatchesResponse.Matches[i].AwayTeam.Name {
-		case "Wolverhampton Wanderers FC":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Wolverhampton FC"
-		case "Borussia Mönchengladbach":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Borussia Gladbach"
-		case "FC Internazionale Milano":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Inter"
-		case "Club Atlético de Madrid":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Atletico Madrid"
-		case "RCD Espanyol de Barcelona":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Espanyol"
-		case "Rayo Vallecano de Madrid":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Rayo Vallecano"
-		case "Real Betis Balompié":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Real Betis"
-		case "Real Sociedad de Fútbol":
-			MatchesResponse.Matches[i].AwayTeam.Name = "Real Sociedad"
-		}
-
-		// Маппинг для названий лиг
-		switch MatchesResponse.Matches[i].Competition.Name {
-		case "UEFA Champions League":
-			MatchesResponse.Matches[i].Competition.Name = "UCL"
-		case "UEFA Europa League":
-			MatchesResponse.Matches[i].Competition.Name = "UEL"
-		case "Primera Division":
-			MatchesResponse.Matches[i].Competition.Name = "LaLiga"
-		case "Primeira Liga":
-			MatchesResponse.Matches[i].Competition.Name = "Primeira"
-		case "Premier League":
-			MatchesResponse.Matches[i].Competition.Name = "EPL"
-		case "Serie A":
-			MatchesResponse.Matches[i].Competition.Name = "SerieA"
-		case "Bundesliga":
-			MatchesResponse.Matches[i].Competition.Name = "Bundesliga"
-		case "Ligue 1":
-			MatchesResponse.Matches[i].Competition.Name = "Ligue1"
-		case "Eredivisie":
-			MatchesResponse.Matches[i].Competition.Name = "Eredivisie"
-		}
-	}
-
-	// Фильтруем матчи только нужных лиг
-	var filteredMatches []types.Match
-	allowedLeagues := map[string]bool{
-		"LaLiga":     true,
-		"EPL":        true,
-		"Bundesliga": true,
-		"SerieA":     true,
-		"Ligue1":     true,
-		"UCL":        true,
-	}
-
-	for _, match := range MatchesResponse.Matches {
-		if allowedLeagues[match.Competition.Name] {
-			filteredMatches = append(filteredMatches, match)
-		}
-	}
-
-	return filteredMatches, nil
+	return Matches, nil
 }
 
 // Вспомогательная функция для добавления дней к дате

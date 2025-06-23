@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	api "football_tgbot/internal/infrastructure/api"
 	db "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/types"
 
@@ -10,14 +11,14 @@ import (
 
 type MatchesService struct {
 	matchesStore db.MatchesStore
-	// ratingService *RatingService   -- TODO
+	apiClient    api.FootballDataClient
 }
 
-func NewMatchesService(matchesStore db.MatchesStore) *MatchesService {
+func NewMatchesService(matchesStore db.MatchesStore, apiClient api.FootballDataClient) *MatchesService {
 	return &MatchesService{
 		matchesStore: matchesStore,
+		apiClient:    apiClient,
 	}
-
 }
 
 func (s *MatchesService) HandleGetMatches(ctx context.Context) ([]types.Match, error) {
@@ -45,4 +46,20 @@ func (s *MatchesService) HandleSaveMatches(matches []types.Match, from, to strin
 		return err
 	}
 	return nil
+}
+
+func (s *MatchesService) HandleGetRecentMatches(ctx context.Context, teamID int, lastN int) ([]types.Match, error) {
+	matches, err := s.matchesStore.GetRecentMatches(ctx, teamID, lastN)
+	if err != nil {
+		return nil, err
+	}
+	return matches, nil
+}
+
+func (s *MatchesService) HandleReqMatches(ctx context.Context, from string, to string) ([]types.Match, error) {
+	return s.apiClient.GetMatches(ctx, from, to)
+}
+
+func (s *MatchesService) HandleSaveMatchRating(ctx context.Context, match types.Match, rating float64) error {
+	return s.matchesStore.UpdateMatchRatingInMongoDB(match, rating)
 }

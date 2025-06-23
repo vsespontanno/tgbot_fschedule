@@ -7,10 +7,12 @@ import (
 	"football_tgbot/internal/cache"
 	"football_tgbot/internal/config"
 	"football_tgbot/internal/db"
+	"football_tgbot/internal/infrastructure/api"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
 	pgRepo "football_tgbot/internal/repository/postgres"
 	"football_tgbot/internal/service"
 	"log"
+	"net/http"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -51,9 +53,13 @@ func Start() error {
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
 	userStore := pgRepo.NewPGUserStore(pg)
 
+	footballData := api.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
+
 	standingsService := service.NewStandingService(standingsStore)
-	matchesService := service.NewMatchesService(matchesStore)
+	matchesService := service.NewMatchesService(matchesStore, footballData)
 	userService := service.NewUserService(userStore)
+
+	service.Start(mongoClient, redisClient)
 
 	return handleUpdates(bot, standingsService, matchesService, userService, redisClient)
 }

@@ -1,11 +1,10 @@
-package rating
+package service
 
 import (
 	"context"
 	"fmt"
 	db "football_tgbot/internal/db"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/service"
 	"football_tgbot/internal/types"
 	"log"
 	"os"
@@ -32,9 +31,9 @@ func TestCalculatePositionOfTeams(t *testing.T) {
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(client, "football")
 	// standingsStore := mongoRepo.NewMongoDBStandingsStore(client, "football")
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(client, "football")
-	matchesService := service.NewMatchesService(matchesStore)
+	matchesService := NewMatchesService(matchesStore, nil)
 	// standingsService := service.NewStandingService(standingsStore)
-	teamsService := service.NewTeamsService(teamsStore)
+	teamsService := NewTeamsService(teamsStore)
 
 	matches, err := matchesService.HandleGetMatches(context.Background())
 	if err != nil {
@@ -80,9 +79,9 @@ func TestMatchRatings(t *testing.T) {
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
 
-	standingsService := service.NewStandingService(standingsStore)
-	matchesService := service.NewMatchesService(matchesStore)
-	teamsService := service.NewTeamsService(teamsStore)
+	standingsService := NewStandingService(standingsStore)
+	matchesService := NewMatchesService(matchesStore, nil)
+	teamsService := NewTeamsService(teamsStore)
 
 	ctx := context.Background()
 
@@ -191,7 +190,7 @@ func TestMatchRatings(t *testing.T) {
 }
 
 // TestFindMatchesByTeamNames - тестовая функция для поиска матчей по названиям команд
-func FindMatchByTeamNames(t *testing.T, matchesService *service.MatchesService, homeTeamName, awayTeamName string) (types.Match, error) {
+func FindMatchByTeamNames(t *testing.T, matchesService *MatchesService, homeTeamName, awayTeamName string) (types.Match, error) {
 	err := godotenv.Load("../../.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")

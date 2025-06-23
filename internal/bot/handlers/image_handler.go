@@ -19,7 +19,7 @@ import (
 // Если изображение есть в кэше Redis, возвращает его.
 func GenerateTableImage(data []types.Standing, filename string, redisClient *cache.RedisClient) error {
 	cacheKey := "table_image: " + filename
-	const cacheTTL = 1 * time.Hour
+	const cacheTTL = 10 * time.Minute
 	ctx := context.Background()
 
 	// ПРоверка кеша
@@ -172,7 +172,7 @@ func GenerateTableImage(data []types.Standing, filename string, redisClient *cac
 // функция для генерации изображения расписания матчей
 func GenerateScheduleImage(matches []types.Match, redisClient *cache.RedisClient) (*bytes.Buffer, error) {
 	cacheKey := "schedule_image"
-	const cacheTTL = 1 * time.Hour
+	const cacheTTL = 10 * time.Minute
 	ctx := context.Background()
 
 	// Проверяем кэш

@@ -78,3 +78,11 @@ func (c *RedisClient) GetBytes(ctx context.Context, key string) ([]byte, error) 
 	}
 	return data, nil
 }
+
+func (c *RedisClient) DeleteByPattern(ctx context.Context, pattern string) error {
+	keys, err := c.client.Keys(ctx, pattern).Result()
+	if err != nil {
+		return err
+	}
+	return c.client.Del(ctx, keys...).Err()
+}
