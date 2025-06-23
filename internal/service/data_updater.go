@@ -4,7 +4,6 @@ import (
 	"context"
 	"football_tgbot/internal/cache"
 	"football_tgbot/internal/config"
-	"football_tgbot/internal/db"
 	"football_tgbot/internal/infrastructure/api"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/types"
@@ -17,7 +16,6 @@ import (
 
 func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Client, redisClient *cache.RedisClient) {
 	cfg := config.LoadConfig("../../.env")
-	mongoURI := cfg.MongoURI
 	footballAPI := cfg.FootballDataAPIKey
 
 	logrus.Info("Updating data")
@@ -25,11 +23,6 @@ func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Cli
 	from := time.Now().Format("2006-01-02")
 	to := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
 
-	mongoClient, err := db.ConnectToMongoDB(mongoURI)
-	if err != nil {
-		logrus.Errorf("Failed to connect to MongoDB: %v", err)
-		return
-	}
 	defer mongoClient.Disconnect(context.TODO())
 	logrus.Info("Connected to MongoDB")
 
@@ -38,10 +31,6 @@ func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Cli
 	FootballData := api.NewFootballAPIClient(httpclient, footballAPI)
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
-	if err != nil {
-		logrus.Errorf("Failed to connect to Redis: %v", err)
-		return
-	}
 
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
 	matchesService := NewMatchesService(matchesStore, FootballData)
