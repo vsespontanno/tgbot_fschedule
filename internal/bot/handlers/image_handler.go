@@ -170,8 +170,13 @@ func GenerateTableImage(data []types.Standing, filename string, redisClient *cac
 }
 
 // функция для генерации изображения расписания матчей
-func GenerateScheduleImage(matches []types.Match, redisClient *cache.RedisClient) (*bytes.Buffer, error) {
-	cacheKey := "schedule_image"
+func GenerateScheduleImage(matches []types.Match, redisClient *cache.RedisClient, leagueName string) (*bytes.Buffer, error) {
+	var cacheKey string
+	if leagueName == "" {
+		cacheKey = "top_matches_image"
+	} else {
+		cacheKey = "all_matches_image" + leagueName
+	}
 	const cacheTTL = 10 * time.Minute
 	ctx := context.Background()
 

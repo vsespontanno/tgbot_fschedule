@@ -54,7 +54,7 @@ func (m *FootballAPIClient) GetMatches(ctx context.Context, from, to string) ([]
 		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
 	}
 
-	Matches := Mapper(MatchesResponse)
+	filteredMatches := Mapper(MatchesResponse)
 
-	return Matches, nil
+	return filteredMatches, nil
 }

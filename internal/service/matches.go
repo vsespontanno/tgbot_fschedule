@@ -63,3 +63,7 @@ func (s *MatchesService) HandleReqMatches(ctx context.Context, from string, to s
 func (s *MatchesService) HandleSaveMatchRating(ctx context.Context, match types.Match, rating float64) error {
 	return s.matchesStore.UpdateMatchRatingInMongoDB(match, rating)
 }
+
+func (s *MatchesService) HandleUpsertMatch(ctx context.Context, match types.Match) error {
+	return s.matchesStore.UpsertMatch(ctx, match)
+}

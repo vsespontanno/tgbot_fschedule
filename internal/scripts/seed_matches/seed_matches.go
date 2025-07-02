@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"football_tgbot/internal/adapters"
 	"football_tgbot/internal/db"
+	"football_tgbot/internal/domain"
 	"football_tgbot/internal/infrastructure/api"
 	mongorepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/service"
@@ -54,6 +56,7 @@ func main() {
 	teamsService := service.NewTeamsService(teamsStore)
 	matchesService := service.NewMatchesService(matchesStore, nil)
 	footallClient := api.NewFootballAPIClient(http.DefaultClient, apiKey)
+	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
 
 	httpclient := &http.Client{}
 
@@ -76,7 +79,7 @@ func main() {
 	}
 	fmt.Printf("Successfully saved %d matches\n", len(matches))
 	for _, match := range matches {
-		rating, err := service.CalculateRatingOfMatch(ctx, match, teamsService, standingsService, matchesStore)
+		rating, err := domain.CalculateRatingOfMatch(ctx, match, calculator)
 		if err != nil {
 			logrus.Warnf("Error calculating rating for match %v vs %v; error: %v; skipping", match.HomeTeam.Name, match.AwayTeam.Name, err)
 			continue

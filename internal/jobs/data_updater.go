@@ -1,14 +1,18 @@
-package service
+package jobs
 
 import (
 	"context"
+	"net/http"
+	"time"
+
+	"football_tgbot/internal/adapters"
 	"football_tgbot/internal/cache"
 	"football_tgbot/internal/config"
 	"football_tgbot/internal/infrastructure/api"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/types"
-	"net/http"
-	"time"
+	"football_tgbot/internal/service"
+
+	"football_tgbot/internal/domain"
 
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,19 +27,21 @@ func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Cli
 	from := time.Now().Format("2006-01-02")
 	to := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
 
-	defer mongoClient.Disconnect(context.TODO())
-	logrus.Info("Connected to MongoDB")
-
 	httpclient := &http.Client{}
 
-	FootballData := api.NewFootballAPIClient(httpclient, footballAPI)
+	// Инфраструктурные клиенты и репозитории
+	footballDataClient := api.NewFootballAPIClient(httpclient, footballAPI)
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
-
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
-	matchesService := NewMatchesService(matchesStore, FootballData)
-	teamsService := NewTeamsService(teamsStore)
-	standingsService := NewStandingService(standingsStore)
+
+	// Сервисы
+	matchesService := service.NewMatchesService(matchesStore, footballDataClient)
+	teamsService := service.NewTeamsService(teamsStore)
+	standingsService := service.NewStandingService(standingsStore)
+
+	// Адаптер домена, реализующий domain.Calculator через наши сервисы
+	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
 
 	logrus.Infof("Fetching matches from %s to %s…", from, to)
 	matches, err := matchesService.HandleReqMatches(ctx, from, to)
@@ -43,37 +49,36 @@ func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Cli
 		logrus.Errorf("Error fetching matches: %v", err)
 		return
 	}
-
-	var newMatches []types.Match
-	for _, match := range matches {
-		existingMatch, err := matchesService.HandleGetMatchByID(ctx, match.ID)
-		if err != nil || existingMatch.ID == 0 {
-			newMatches = append(newMatches, match)
-		}
-	}
-
 	if len(matches) == 0 {
-		logrus.Info("No new matches to save")
+		logrus.Info("No matches to upsert")
 		return
 	}
-
-	err = matchesService.HandleSaveMatches(newMatches, from, to)
-	if err != nil {
-		logrus.Errorf("Error saving matches: %v", err)
-		return
-	}
-	logrus.Infof("Successfully saved %d matches", len(matches))
 
 	for _, match := range matches {
-		_, err := CalculateRatingOfMatch(ctx, match, teamsService, standingsService, matchesStore)
+		if err := matchesService.HandleUpsertMatch(ctx, match); err != nil {
+			logrus.Errorf("Error upserting match %d: %v", match.ID, err)
+			continue
+		}
+
+		// Вычисляем рейтинг через домен
+		rating, err := domain.CalculateRatingOfMatch(ctx, match, calculator)
 		if err != nil {
 			logrus.Warnf("Failed to calculate rating for match %d: %v", match.ID, err)
+		} else {
+			logrus.Infof("Match %d rated: %.2f", match.ID, rating)
 		}
 	}
 
 	// Инвалидация кэша
-	redisClient.DeleteByPattern(context.Background(), "schedule_image:*")
-	redisClient.DeleteByPattern(context.Background(), "table_image:*")
+	if err := redisClient.DeleteByPattern(context.Background(), "top_matches_image"); err != nil {
+		logrus.Errorf("Failed to invalidate top_matches_image cache: %v", err)
+	}
+	if err := redisClient.DeleteByPattern(context.Background(), "all_matches_image*"); err != nil {
+		logrus.Errorf("Failed to invalidate all_matches_image cache: %v", err)
+	}
+	if err := redisClient.DeleteByPattern(context.Background(), "table_image:*"); err != nil {
+		logrus.Errorf("Failed to invalidate table_image cache: %v", err)
+	}
 
 	// Обработка паники
 	defer func() {
@@ -81,7 +86,6 @@ func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Cli
 			logrus.Errorf("Panic in updater: %v", r)
 		}
 	}()
-
 }
 
 func Start(mongoClient *mongo.Client, redisClient *cache.RedisClient) {

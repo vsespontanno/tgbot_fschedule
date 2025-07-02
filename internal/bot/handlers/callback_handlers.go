@@ -25,7 +25,7 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, ma
 
 	switch query.Data {
 	case "show_top_matches":
-		return HandleTopMatches(bot, query, matchService, redisClient)
+		return HandleTopMatches(bot, query, matchService, redisClient, "")
 	case "show_all_matches":
 		return HandleDefaultScheduleCommand(bot, query.Message)
 	}
@@ -35,7 +35,7 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, ma
 	}
 
 	if league, ok := keyboards.KeyboardsSchedule[query.Data]; ok {
-		return HandleScheduleCallback(bot, query, matchService, redisClient, league)
+		return HandleScheduleCallback(bot, query, matchService, redisClient, league, query.Data)
 	}
 
 	return resp.SendMessage(bot, query.Message.Chat.ID, "Неизвестная команда.")
@@ -66,7 +66,7 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 	return err
 }
 
-func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, league types.League) error {
+func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, league types.League, button string) error {
 	// Отвечаем на callback запрос
 	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
 	leagueCode := strings.TrimPrefix(callback.Data, "schedule_")
@@ -100,7 +100,7 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	}
 
 	// Генерируем изображение с расписанием
-	buf, err := GenerateScheduleImage(leagueMatches, redisClient)
+	buf, err := GenerateScheduleImage(leagueMatches, redisClient, leagueName)
 	if err != nil {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием")
 		bot.Send(msg)
@@ -149,7 +149,7 @@ func getLeagueName(code string) string {
 	}
 }
 
-func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient) error {
+func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, button string) error {
 	ctx := context.Background()
 	matches, err := service.HandleGetMatches(ctx)
 	if err != nil {
@@ -170,7 +170,7 @@ func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, se
 		return nil
 	}
 
-	buf, err := GenerateScheduleImage(matches, redisClient)
+	buf, err := GenerateScheduleImage(matches, redisClient, button)
 	if err != nil {
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием топовых матчей")
 		bot.Send(msg)

@@ -8,6 +8,7 @@ import (
 	"football_tgbot/internal/config"
 	"football_tgbot/internal/db"
 	"football_tgbot/internal/infrastructure/api"
+	"football_tgbot/internal/jobs"
 	mongoRepo "football_tgbot/internal/repository/mongodb"
 	pgRepo "football_tgbot/internal/repository/postgres"
 	"football_tgbot/internal/service"
@@ -18,6 +19,7 @@ import (
 )
 
 func Start() error {
+	fmt.Println("Starting bot...")
 	cfg := config.LoadConfig("")
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
@@ -59,7 +61,7 @@ func Start() error {
 	matchesService := service.NewMatchesService(matchesStore, footballData)
 	userService := service.NewUserService(userStore)
 
-	service.Start(mongoClient, redisClient)
+	jobs.Start(mongoClient, redisClient)
 
 	return handleUpdates(bot, standingsService, matchesService, userService, redisClient)
 }

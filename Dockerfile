@@ -33,9 +33,6 @@ COPY --from=builder /bot /app/bot
 # Копируем папку со шрифтами
 COPY fonts /app/fonts
 
-# Копируем .env файл (для локальной разработки)
-COPY .env /app/.env
-
 # Обновляем кэш шрифтов
 RUN fc-cache -fv
 

@@ -1,13 +1,9 @@
-package db
+package mongodb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"football_tgbot/internal/infrastructure/api"
 	"football_tgbot/internal/types"
-	"io"
-	"net/http"
 
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,6 +18,7 @@ type MatchesStore interface {
 	GetRecentMatches(ctx context.Context, teamID int, lastN int) ([]types.Match, error)
 	SaveMatchesToMongoDB(matches []types.Match, from, to string) error
 	UpdateMatchRatingInMongoDB(match types.Match, rating float64) error
+	UpsertMatch(ctx context.Context, match types.Match) error
 }
 
 // структура для взаимодействия с данными матчей и команд
@@ -119,39 +116,6 @@ func (m *MongoDBMatchesStore) SaveMatchesToMongoDB(matches []types.Match, from, 
 	return nil
 }
 
-func (m *MongoDBMatchesStore) GetMatchesSchedule(httpclient *http.Client, apiKey, from, to string) ([]types.Match, error) {
-
-	url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", from, to)
-	// req, err := http.NewRequest("GET", today)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("X-Auth-Token", apiKey)
-
-	resp, err := httpclient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error making request: %v", err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %v", err)
-	}
-	var MatchesResponse types.MatchesResponse
-	err = json.Unmarshal(body, &MatchesResponse)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
-	}
-
-	Matches := api.Mapper(MatchesResponse)
-
-	return Matches, nil
-}
-
 func (m *MongoDBMatchesStore) UpdateMatchRatingInMongoDB(match types.Match, rating float64) error {
 	collection := m.client.Database("football").Collection("matches")
 
@@ -164,4 +128,13 @@ func (m *MongoDBMatchesStore) UpdateMatchRatingInMongoDB(match types.Match, rati
 	}
 
 	return nil
+}
+
+func (m *MongoDBMatchesStore) UpsertMatch(ctx context.Context, match types.Match) error {
+	collection := m.client.Database("football").Collection("matches")
+	filter := bson.M{"id": match.ID}
+	update := bson.M{"$set": match}
+	opts := options.Update().SetUpsert(true)
+	_, err := collection.UpdateOne(ctx, filter, update, opts)
+	return err
 }

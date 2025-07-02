@@ -1,67 +1,73 @@
-package service
+package domain
 
 import (
 	"context"
 	"fmt"
-	db "football_tgbot/internal/db"
-	mongoRepo "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/types"
 	"log"
 	"os"
 	"testing"
 
+	"football_tgbot/internal/adapters"
+	"football_tgbot/internal/db"
+	"football_tgbot/internal/domain"
+	mongoRepo "football_tgbot/internal/repository/mongodb"
+	"football_tgbot/internal/service"
+	"football_tgbot/internal/types"
+
 	"github.com/joho/godotenv"
 )
 
-func TestCalculatePositionOfTeams(t *testing.T) {
-	err := godotenv.Load("../../.env")
+// setupCalculator создает и возвращает адаптер domain.Calculator с реальными сервисами
+func setupCalculator(t *testing.T) domain.Calculator {
+	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		t.Fatalf("Error loading .env file: %v", err)
 	}
 
 	mongoURI := os.Getenv("MONGODB_URI")
-
 	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		t.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
-	defer client.Disconnect(context.TODO())
-	fmt.Println("Connected to MongoDB!")
+	// Закрываем подключение после теста
+	t.Cleanup(func() { _ = client.Disconnect(context.Background()) })
 
+	// Репозитории
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(client, "football")
-	// standingsStore := mongoRepo.NewMongoDBStandingsStore(client, "football")
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(client, "football")
-	matchesService := NewMatchesService(matchesStore, nil)
-	// standingsService := service.NewStandingService(standingsStore)
-	teamsService := NewTeamsService(teamsStore)
+	standingsStore := mongoRepo.NewMongoDBStandingsStore(client, "football")
 
-	matches, err := matchesService.HandleGetMatches(context.Background())
-	if err != nil {
-		t.Fatalf("Failed to get matches: %v", err)
-	}
+	// Сервисы
+	matchesService := service.NewMatchesService(matchesStore, nil)
+	teamsService := service.NewTeamsService(teamsStore)
+	standingsService := service.NewStandingService(standingsStore)
 
-	var match types.Match
+	// Адаптер домена реализует интерфейс domain.Calculator
+	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
+	return calculator
+}
 
-	for _, show := range matches {
-		if show.HomeTeam.Name == "Sevilla FC" {
-			if show.AwayTeam.Name == "UD Las Palmas" {
-				match = show
-			}
-		}
-	}
+// TestCalculatePositionOfTeams проверяет определение лиг команд
+func TestCalculatePositionOfTeams(t *testing.T) {
+	calculator := setupCalculator(t)
 
-	homeLeague, awayLeague, err := getLeaguesForTeams(context.Background(), teamsService, match.HomeTeam.ID, match.AwayTeam.ID)
+	homeID := 80  // пример ID Sevilla FC
+	awayID := 275 // пример ID UD Las Palmas
+
+	homeLeague, awayLeague, err := domain.GetLeaguesForTeams(context.Background(), calculator, homeID, awayID)
 	if err != nil {
 		t.Fatalf("Failed to get leagues for teams: %v", err)
 	}
 	if homeLeague != "LaLiga" || awayLeague != "LaLiga" {
 		t.Errorf("wanted %s and %s, got %s and %s", "LaLiga", "LaLiga", homeLeague, awayLeague)
 	}
-
 }
 
-func TestMatchRatings(t *testing.T) {
-	err := godotenv.Load("../../.env")
+// TestCalculateRatingOfMatch проверяет, что рейтинг матча лежит в [0,1]
+func TestCalculateRatingOfMatch(t *testing.T) {
+	calculator := setupCalculator(t)
+
+	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -75,61 +81,53 @@ func TestMatchRatings(t *testing.T) {
 	defer mongoClient.Disconnect(context.TODO())
 	fmt.Println("Connected to MongoDB!")
 
-	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
-	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
-	teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
-
-	standingsService := NewStandingService(standingsStore)
-	matchesService := NewMatchesService(matchesStore, nil)
-	teamsService := NewTeamsService(teamsStore)
-
 	ctx := context.Background()
 
 	// Получаем все матчи
 	homeTeamName := "Athletic Club"
 	awayTeamName := "Deportivo Alavés"
-	match1, err := FindMatchByTeamNames(t, matchesService, homeTeamName, awayTeamName)
+	match1, err := FindMatchByTeamNames(t, calculator, homeTeamName, awayTeamName)
 	if err != nil {
 		t.Fatalf("Failed to get matches: %v", err)
 	}
 	homeTeamName1 := "Bayer 04 Leverkusen"
 	awayTeamName1 := "Borussia Dortmund"
-	match2, err := FindMatchByTeamNames(t, matchesService, homeTeamName1, awayTeamName1)
+	match2, err := FindMatchByTeamNames(t, calculator, homeTeamName1, awayTeamName1)
 	if err != nil {
 		t.Fatalf("Failed to get matches: %v", err)
 	}
 	//Данные для первого матча
 	// 1) Сила команд по позициям
-	homeStrength, awayStrength, err := CalculatePositionOfTeams(ctx, teamsService, standingsService, match1)
+	homeStrength, awayStrength, err := domain.CalculatePositionOfTeams(ctx, calculator, match1)
 	if err != nil {
 		t.Errorf("error calculating team strengths: %v", err)
 	}
 	fmt.Printf("Сила команд: Athletic Club - %f; Deportivo Alavés - %f\n", homeStrength, awayStrength)
 	// 2) Лиги и вес
-	homeLeague, awayLeague, err := getLeaguesForTeams(ctx, teamsService, match1.HomeTeam.ID, match1.AwayTeam.ID)
+	homeLeague, awayLeague, err := domain.GetLeaguesForTeams(ctx, calculator, match1.HomeTeam.ID, match1.AwayTeam.ID)
 	if err != nil || homeLeague == "" || awayLeague == "" {
 		t.Errorf("Матч %s - %s пропущен: проблема с лигами\n", match1.HomeTeam.Name, match1.AwayTeam.Name)
 	}
-	avgLeagueWeight := (leagueNorm[homeLeague] + leagueNorm[awayLeague]) / 2.0
+	avgLeagueWeight := (types.LeagueNorm[homeLeague] + types.LeagueNorm[awayLeague]) / 2.0
 	fmt.Printf("Сила ЛаЛига: %F\n", avgLeagueWeight)
 	// 3) Форма команд
-	recentMatchesHome, err := matchesStore.GetRecentMatches(ctx, match1.HomeTeam.ID, 5)
+	recentMatchesHome, err := calculator.HandleGetRecentMatches(ctx, match1.HomeTeam.ID, 5)
 	if err != nil {
 		t.Errorf("Error getting recent matches for home team %d: %v", match1.HomeTeam.ID, err)
 	}
-	recentMatchesAway, err := matchesStore.GetRecentMatches(ctx, match1.AwayTeam.ID, 5)
+	recentMatchesAway, err := calculator.HandleGetRecentMatches(ctx, match1.AwayTeam.ID, 5)
 	if err != nil {
 		t.Errorf("Error getting recent matches for away team %d: %v", match1.AwayTeam.ID, err)
 	}
-	homeForm := calculateForm(recentMatchesHome)
-	awayForm := calculateForm(recentMatchesAway)
+	homeForm := domain.CalculateForm(recentMatchesHome, match1.HomeTeam.ID)
+	awayForm := domain.CalculateForm(recentMatchesAway, match1.AwayTeam.ID)
 	formFactor := (homeForm + awayForm) / 2.0
 	fmt.Printf("Формы каждой команды: Athletic Club - %f; Deportivo Alavés - %f\nОбщая форма - %f\n", homeForm, awayForm, formFactor)
 	// 4) Бонусы
-	derbyBonus := GetDerbyBonus(ctx, teamsService, match1)
+	derbyBonus := domain.GetDerbyBonus(ctx, calculator, match1)
 	stageBonus := 0.0
 	if homeLeague == "Champions League" && match1.Stage != "" {
-		stageBonus = CLstage[match1.Stage]
+		stageBonus = types.CLstage[match1.Stage]
 	}
 	crossLeagueBonus := 0.0
 	if homeLeague != awayLeague {
@@ -145,36 +143,36 @@ func TestMatchRatings(t *testing.T) {
 	fmt.Println("-----------------------------------")
 	//Данные для второго матча
 	// 1) Сила команд по позициям
-	homeStrength1, awayStrength1, err := CalculatePositionOfTeams(ctx, teamsService, standingsService, match2)
+	homeStrength1, awayStrength1, err := domain.CalculatePositionOfTeams(ctx, calculator, match2)
 	if err != nil {
 		t.Errorf("error calculating team strengths: %v", err)
 	}
 	fmt.Printf("Сила команд: Bayer 04 Leverkusen - %f; Borussia Dortmund - %f\n", homeStrength1, awayStrength1)
 	// 2) Лиги и вес
-	homeLeague1, awayLeague1, err := getLeaguesForTeams(ctx, teamsService, match2.HomeTeam.ID, match2.AwayTeam.ID)
+	homeLeague1, awayLeague1, err := domain.GetLeaguesForTeams(ctx, calculator, match2.HomeTeam.ID, match2.AwayTeam.ID)
 	if err != nil || homeLeague1 == "" || awayLeague1 == "" {
 		t.Errorf("Матч %s - %s пропущен: проблема с лигами\n", match2.HomeTeam.Name, match2.AwayTeam.Name)
 	}
-	avgLeagueWeight1 := (leagueNorm[homeLeague1] + leagueNorm[awayLeague1]) / 2.0
+	avgLeagueWeight1 := (types.LeagueNorm[homeLeague1] + types.LeagueNorm[awayLeague1]) / 2.0
 	fmt.Printf("Сила Бундеслиги: %F\n", avgLeagueWeight1)
 	// 3) Форма команд
-	recentMatchesHome1, err := matchesStore.GetRecentMatches(ctx, match2.HomeTeam.ID, 5)
+	recentMatchesHome1, err := calculator.HandleGetRecentMatches(ctx, match2.HomeTeam.ID, 5)
 	if err != nil {
 		t.Errorf("Error getting recent matches for home team %d: %v", match2.HomeTeam.ID, err)
 	}
-	recentMatchesAway1, err := matchesStore.GetRecentMatches(ctx, match2.AwayTeam.ID, 5)
+	recentMatchesAway1, err := calculator.HandleGetRecentMatches(ctx, match2.AwayTeam.ID, 5)
 	if err != nil {
 		t.Errorf("Error getting recent matches for away team %d: %v", match2.AwayTeam.ID, err)
 	}
-	homeForm1 := calculateForm(recentMatchesHome1)
-	awayForm1 := calculateForm(recentMatchesAway1)
+	homeForm1 := domain.CalculateForm(recentMatchesHome1, match2.HomeTeam.ID)
+	awayForm1 := domain.CalculateForm(recentMatchesAway1, match2.AwayTeam.ID)
 	formFactor1 := (homeForm1 + awayForm1) / 2.0
 	fmt.Printf("Формы каждой команды: Bayer 04 Leverkusen - %f; Borussia Dortmund - %f\nОбщая форма - %f\n", homeForm1, awayForm1, formFactor1)
 	// 4) Бонусы
-	derbyBonus1 := GetDerbyBonus(ctx, teamsService, match1)
+	derbyBonus1 := domain.GetDerbyBonus(ctx, calculator, match1)
 	stageBonus1 := 0.0
 	if homeLeague1 == "Champions League" && match2.Stage != "" {
-		stageBonus1 = CLstage[match2.Stage]
+		stageBonus1 = types.CLstage[match2.Stage]
 	}
 	crossLeagueBonus1 := 0.0
 	if homeLeague1 != awayLeague1 {
@@ -189,24 +187,10 @@ func TestMatchRatings(t *testing.T) {
 	fmt.Printf("Финальный рейтинг: %f\n", rating1)
 }
 
-// TestFindMatchesByTeamNames - тестовая функция для поиска матчей по названиям команд
-func FindMatchByTeamNames(t *testing.T, matchesService *MatchesService, homeTeamName, awayTeamName string) (types.Match, error) {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	mongoURI := os.Getenv("MONGODB_URI")
-
-	client, err := db.ConnectToMongoDB(mongoURI)
-	if err != nil {
-		t.Fatalf("Failed to connect to MongoDB: %v", err)
-	}
-	defer client.Disconnect(context.TODO())
-	fmt.Println("Connected to MongoDB!")
+func FindMatchByTeamNames(t *testing.T, calculator domain.Calculator, homeTeamName, awayTeamName string) (types.Match, error) {
 
 	// Получаем все матчи
-	matches, err := matchesService.HandleGetMatches(context.Background())
+	matches, err := calculator.HandleGetMatches(context.Background())
 	if err != nil {
 		t.Fatalf("Failed to get matches: %v", err)
 	}
