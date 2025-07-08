@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	api "football_tgbot/internal/infrastructure/api"
-	db "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/types"
+
+	api "github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
+	db "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"go.mongodb.org/mongo-driver/mongo"
 )

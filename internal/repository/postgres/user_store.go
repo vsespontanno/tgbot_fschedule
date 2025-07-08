@@ -5,8 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"football_tgbot/internal/types"
 	"log"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	sq "github.com/Masterminds/squirrel"
 )

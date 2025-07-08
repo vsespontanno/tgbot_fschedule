@@ -1,6 +1,6 @@
 package api
 
-import "football_tgbot/internal/types"
+import "github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 func Mapper(MatchesResponse types.MatchesResponse) []types.Match {
 	for i := range MatchesResponse.Matches {

@@ -3,14 +3,15 @@ package handlers
 import (
 	"context"
 	"fmt"
-	"football_tgbot/internal/bot/keyboards"
-	resp "football_tgbot/internal/bot/response"
-	"football_tgbot/internal/cache"
-	"football_tgbot/internal/service"
-	"football_tgbot/internal/types"
 	"os"
 	"sort"
 	"strings"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/bot/keyboards"
+	resp "github.com/vsespontanno/tgbot_fschedule/internal/bot/response"
+	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
+	"github.com/vsespontanno/tgbot_fschedule/internal/service"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -54,10 +55,10 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 		return fmt.Errorf("error generating image: %w", err)
 	}
 
-	photo := tgbotapi.NewPhoto(query.Message.Chat.ID, tgbotapi.FilePath(imagePath))
-	_, err = bot.Send(photo)
+	err = resp.SendPhoto(bot, query.Message.Chat.ID, imagePath)
 	if err != nil {
-		return fmt.Errorf("error sending image: %w", err)
+		resp.SendMessage(bot, query.Message.Chat.ID, "Произошла ошибка при отправке изображения с таблицей")
+		return fmt.Errorf("error sending image for table: %w", err)
 	}
 
 	// Отправляем ответ на callback query
@@ -115,9 +116,12 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 		Name:  "schedule.png",
 		Bytes: buf.Bytes(),
 	}
-	msg := tgbotapi.NewPhoto(callback.Message.Chat.ID, photo)
-	_, err = bot.Send(msg)
 
+	err = resp.SendPhoto(bot, callback.Message.Chat.ID, photo.Name)
+	if err != nil {
+		resp.SendMessage(bot, callback.Message.Chat.ID, "Произошла ошибка при отправке изображения с расписанием")
+		return err
+	}
 	if _, err := bot.Request(callbackConfig); err != nil {
 		return err
 	}
@@ -150,7 +154,9 @@ func getLeagueName(code string) string {
 }
 
 func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, button string) error {
+
 	ctx := context.Background()
+	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
 	matches, err := service.HandleGetMatches(ctx)
 	if err != nil {
 		return err
@@ -172,8 +178,7 @@ func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, se
 
 	buf, err := GenerateScheduleImage(matches, redisClient, button)
 	if err != nil {
-		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием топовых матчей")
-		bot.Send(msg)
+		resp.SendMessage(bot, callback.Message.Chat.ID, "Произошла ошибка при создании изображения с топ-матчами")
 		return err
 	}
 
@@ -181,8 +186,15 @@ func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, se
 		Name:  "top_matches_schedule.png",
 		Bytes: buf.Bytes(),
 	}
-	msg := tgbotapi.NewPhoto(callback.Message.Chat.ID, photo)
-	_, err = bot.Send(msg)
+	err = resp.SendPhoto(bot, callback.Message.Chat.ID, photo.Name)
+	if err != nil {
+		resp.SendMessage(bot, callback.Message.Chat.ID, "Произошла ошибка при отправке изображения с топ-матчами")
+		return err
+	}
+
+	if _, err := bot.Request(callbackConfig); err != nil {
+		return err
+	}
 
 	return err
 

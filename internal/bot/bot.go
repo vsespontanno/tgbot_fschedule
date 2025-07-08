@@ -3,24 +3,26 @@ package bot
 import (
 	"context"
 	"fmt"
-	"football_tgbot/internal/bot/handlers"
-	"football_tgbot/internal/cache"
-	"football_tgbot/internal/config"
-	"football_tgbot/internal/db"
-	"football_tgbot/internal/infrastructure/api"
-	"football_tgbot/internal/jobs"
-	mongoRepo "football_tgbot/internal/repository/mongodb"
-	pgRepo "football_tgbot/internal/repository/postgres"
-	"football_tgbot/internal/service"
 	"log"
 	"net/http"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
+	"github.com/vsespontanno/tgbot_fschedule/internal/bot/handlers"
+	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
+	"github.com/vsespontanno/tgbot_fschedule/internal/config"
+	"github.com/vsespontanno/tgbot_fschedule/internal/db"
+	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
+	"github.com/vsespontanno/tgbot_fschedule/internal/jobs"
+	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	pgRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/postgres"
+	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func Start() error {
 	fmt.Println("Starting bot...")
-	cfg := config.LoadConfig("")
+	cfg := config.LoadConfig()
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	if err != nil {
 		return fmt.Errorf("failed to create bot: %w", err)
@@ -53,15 +55,19 @@ func Start() error {
 	// Initialize stores and services
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
+	teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
 	userStore := pgRepo.NewPGUserStore(pg)
 
 	footballData := api.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
 
 	standingsService := service.NewStandingService(standingsStore)
 	matchesService := service.NewMatchesService(matchesStore, footballData)
+	teamsService := service.NewTeamsService(teamsStore)
 	userService := service.NewUserService(userStore)
 
-	jobs.Start(mongoClient, redisClient)
+	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
+
+	jobs.Start(mongoClient, redisClient, calculator, matchesService)
 
 	return handleUpdates(bot, standingsService, matchesService, userService, redisClient)
 }

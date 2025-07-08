@@ -2,10 +2,11 @@ package mongodb
 
 import (
 	"context"
-	"football_tgbot/internal/db"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 
 	"github.com/joho/godotenv"
 )

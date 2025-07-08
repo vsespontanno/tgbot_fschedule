@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
-	db "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/types"
+
+	db "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
 type StandingsService struct {

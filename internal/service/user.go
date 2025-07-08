@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
-	userRepo "football_tgbot/internal/repository/postgres"
-	"football_tgbot/internal/types"
+
+	userRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/postgres"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
 type UserService struct {

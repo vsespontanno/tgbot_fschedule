@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"football_tgbot/internal/cache"
-	"football_tgbot/internal/types"
 	"image/color"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/fogleman/gg"
 	"github.com/sirupsen/logrus"

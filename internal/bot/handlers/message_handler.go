@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"context"
-	"football_tgbot/internal/bot/keyboards"
-	"football_tgbot/internal/service"
-	"football_tgbot/internal/types"
 	"log"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/bot/keyboards"
+	"github.com/vsespontanno/tgbot_fschedule/internal/service"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )

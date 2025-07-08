@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"football_tgbot/internal/types"
 	"io"
 	"net/http"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
 type FootballDataClient interface {

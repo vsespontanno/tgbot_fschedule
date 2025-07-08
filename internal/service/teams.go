@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
-	mongorepo "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/types"
+
+	mongorepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
 type TeamsService struct {

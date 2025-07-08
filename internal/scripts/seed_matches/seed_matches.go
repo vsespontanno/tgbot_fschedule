@@ -97,8 +97,8 @@ func main() {
 
 // Функция для получения исторических матчей с 2025-01-01 по 2025-05-06
 func getHistoricalMatches(apiKey string, httpclient *http.Client, mongoClient *mongo.Client, matchesService *service.MatchesService) ([]types.Match, error) {
-	startDate := "2025-01-01"
-	endDate := "2025-05-06"
+	startDate := "2024-01-01"
+	endDate := "2025-07-02"
 
 	var allMatches []types.Match
 

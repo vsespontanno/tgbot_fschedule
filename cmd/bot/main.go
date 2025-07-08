@@ -1,8 +1,9 @@
 package main
 
 import (
-	"football_tgbot/internal/bot"
 	"log"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/bot"
 )
 
 func main() {

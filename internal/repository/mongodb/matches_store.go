@@ -3,7 +3,8 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"football_tgbot/internal/types"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"

@@ -1,4 +1,4 @@
-module football_tgbot
+module github.com/vsespontanno/tgbot_fschedule
 
 go 1.23.5
 

@@ -2,14 +2,9 @@ package jobs
 
 import (
 	"context"
-	"net/http"
 	"time"
 
-	"football_tgbot/internal/adapters"
 	"football_tgbot/internal/cache"
-	"football_tgbot/internal/config"
-	"football_tgbot/internal/infrastructure/api"
-	mongoRepo "football_tgbot/internal/repository/mongodb"
 	"football_tgbot/internal/service"
 
 	"football_tgbot/internal/domain"
@@ -18,30 +13,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Client, redisClient *cache.RedisClient) {
-	cfg := config.LoadConfig("../../.env")
-	footballAPI := cfg.FootballDataAPIKey
-
+func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Client, redisClient *cache.RedisClient, calculator domain.Calculator, matchesService *service.MatchesService) {
 	logrus.Info("Updating data")
 
 	from := time.Now().Format("2006-01-02")
 	to := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
-
-	httpclient := &http.Client{}
-
-	// Инфраструктурные клиенты и репозитории
-	footballDataClient := api.NewFootballAPIClient(httpclient, footballAPI)
-	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
-	teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
-	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
-
-	// Сервисы
-	matchesService := service.NewMatchesService(matchesStore, footballDataClient)
-	teamsService := service.NewTeamsService(teamsStore)
-	standingsService := service.NewStandingService(standingsStore)
-
-	// Адаптер домена, реализующий domain.Calculator через наши сервисы
-	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
 
 	logrus.Infof("Fetching matches from %s to %s…", from, to)
 	matches, err := matchesService.HandleReqMatches(ctx, from, to)
@@ -88,12 +64,15 @@ func UpdateMatchesDataWithCollection(ctx context.Context, mongoClient *mongo.Cli
 	}()
 }
 
-func Start(mongoClient *mongo.Client, redisClient *cache.RedisClient) {
+func Start(mongoClient *mongo.Client, redisClient *cache.RedisClient, calculator domain.Calculator, matchesService *service.MatchesService) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	UpdateMatchesDataWithCollection(ctx, mongoClient, redisClient, calculator, matchesService)
+	cancel()
 	go func() {
 		ticker := time.NewTicker(24 * time.Hour)
 		for range ticker.C {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-			UpdateMatchesDataWithCollection(ctx, mongoClient, redisClient)
+			UpdateMatchesDataWithCollection(ctx, mongoClient, redisClient, calculator, matchesService)
 			cancel()
 		}
 	}()
