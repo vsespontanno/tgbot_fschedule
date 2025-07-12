@@ -3,9 +3,10 @@ package adapters
 
 import (
 	"context"
-	"football_tgbot/internal/domain"
-	"football_tgbot/internal/service"
-	"football_tgbot/internal/types"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
+	"github.com/vsespontanno/tgbot_fschedule/internal/service"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
 type CalculatorAdapter struct {

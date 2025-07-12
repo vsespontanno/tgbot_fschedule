@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"football_tgbot/internal/cache"
-	"football_tgbot/internal/service"
+	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
+	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 
-	"football_tgbot/internal/domain"
+	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
 
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo"

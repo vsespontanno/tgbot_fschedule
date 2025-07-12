@@ -3,8 +3,9 @@ package domain
 import (
 	"context"
 	"fmt"
-	"football_tgbot/internal/types"
 	"log"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
 // CalculateForm вычисляет форму команды на основе последних матчей

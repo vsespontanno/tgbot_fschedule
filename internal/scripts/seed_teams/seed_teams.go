@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"football_tgbot/internal/db"
-	"football_tgbot/internal/types"
 	"io"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/db"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"

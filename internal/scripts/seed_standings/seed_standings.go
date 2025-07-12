@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"football_tgbot/internal/db"
-	mongoRepo "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/types"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/db"
+	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/joho/godotenv"
 )

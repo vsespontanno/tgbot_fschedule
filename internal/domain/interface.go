@@ -2,7 +2,8 @@ package domain
 
 import (
 	"context"
-	"football_tgbot/internal/types"
+
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
 type Calculator interface {
