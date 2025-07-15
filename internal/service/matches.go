@@ -37,7 +37,7 @@ func (s *MatchesService) HandleSaveMatches(matches []types.Match, from, to strin
 }
 
 func (s *MatchesService) HandleReqMatches(ctx context.Context, from string, to string) ([]types.Match, error) {
-	return apiClient.FetchMatches(ctx, from, to)
+	return s.apiClient.FetchMatches(ctx, from, to)
 }
 
 func (s *MatchesService) HandleSaveMatchRating(ctx context.Context, match types.Match, rating float64) error {
