@@ -59,24 +59,27 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
-
+	fmt.Println("Stage 1: Loading environment variables")
 	apiKey := os.Getenv("FOOTBALL_DATA_API_KEY")
 	if apiKey == "" {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
-
+	fmt.Printf("Stage 2: Loading apiKey - %s\n", apiKey)
 	mongoURI := os.Getenv("MONGODB_URI")
 	if mongoURI == "" {
 		log.Fatal("MONGODB_URI is not set in the .env file")
 	}
+	fmt.Printf("Stage 3: Loading mongoURI - %s\n", mongoURI)
 
 	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
+	fmt.Println("Stage 4: Connected to MongoDB")
 	defer client.Disconnect(context.TODO())
 
 	store := mongoRepo.NewMongoDBStandingsStore(client, "football")
+	fmt.Println("Stage 5: Created MongoDBStandingsStore")
 
 	for leagueName, league := range types.Leagues {
 		var standings []types.Standing
@@ -150,6 +153,7 @@ func main() {
 			log.Printf("Error saving standings for %s: %v\n", leagueName, err)
 			continue
 		}
+		fmt.Printf("Saved standings for %s\n", leagueName)
 
 	}
 }

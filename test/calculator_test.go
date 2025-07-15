@@ -7,12 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"football_tgbot/internal/adapters"
-	"football_tgbot/internal/db"
-	"football_tgbot/internal/domain"
-	mongoRepo "football_tgbot/internal/repository/mongodb"
-	"football_tgbot/internal/service"
-	"football_tgbot/internal/types"
+	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
+	"github.com/vsespontanno/tgbot_fschedule/internal/db"
+	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
+	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/joho/godotenv"
 )
@@ -37,13 +36,8 @@ func setupCalculator(t *testing.T) domain.Calculator {
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(client, "football")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(client, "football")
 
-	// Сервисы
-	matchesService := service.NewMatchesService(matchesStore, nil)
-	teamsService := service.NewTeamsService(teamsStore)
-	standingsService := service.NewStandingService(standingsStore)
-
 	// Адаптер домена реализует интерфейс domain.Calculator
-	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
+	calculator := adapters.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
 	return calculator
 }
 

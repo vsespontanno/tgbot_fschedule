@@ -11,7 +11,10 @@ import (
 )
 
 type TeamsStore interface {
-	GetAllTeams(ctx context.Context, collectionName string) ([]types.Team, error)
+	SaveTeamsToMongoDB(ctx context.Context, collectionName string, teams []types.Team) error
+}
+
+type TeamsCalcStore interface {
 	GetTeamLeague(ctx context.Context, collectionName string, id int) (string, error)
 	GetTeamsShortName(ctx context.Context, collectionName string, fullName string) (string, error)
 }
@@ -28,30 +31,15 @@ func NewMongoDBTeamsStore(client *mongo.Client, dbName string) *MongoDBTeamsStor
 	}
 }
 
-func (m *MongoDBTeamsStore) GetAllTeams(ctx context.Context, collectionName string) ([]types.Team, error) {
-	var teams []types.Team
-	collection := m.client.Database(m.dbName).Collection(collectionName)
-	cursor, err := collection.Find(ctx, bson.M{})
-	if err != nil {
-		return nil, err
-	}
-	defer cursor.Close(ctx)
-	if err := cursor.All(ctx, &teams); err != nil {
-		return nil, err
-	}
-	return teams, nil
-}
-
 func (m *MongoDBTeamsStore) GetTeamLeague(ctx context.Context, collectionName string, id int) (string, error) {
-	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
-
-	var standing types.Standing
-	filter := bson.M{"team.id": id}
-	err := collection.FindOne(ctx, filter).Decode(&standing)
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+	var team types.Team
+	filter := bson.M{"id": id}
+	err := collection.FindOne(ctx, filter).Decode(&team)
 	if err != nil {
-		return "Wrong League", nil
+		return "", fmt.Errorf("error finding team with ID %d: %s", id, err)
 	}
-	return collectionName, nil
+	return team.League, nil
 }
 
 func (m *MongoDBTeamsStore) GetTeamsShortName(ctx context.Context, collectionName string, fullName string) (string, error) {
@@ -63,4 +51,15 @@ func (m *MongoDBTeamsStore) GetTeamsShortName(ctx context.Context, collectionNam
 		return "", fmt.Errorf("error finding team with name %s: %w", fullName, err)
 	}
 	return team.ShortName, nil
+}
+
+func (m *MongoDBTeamsStore) SaveTeamsToMongoDB(ctx context.Context, collectionName string, teams []types.Team) error {
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+	var documents []interface{}
+	for _, team := range teams {
+		documents = append(documents, team)
+	}
+
+	_, err := collection.InsertMany(context.TODO(), documents)
+	return err
 }

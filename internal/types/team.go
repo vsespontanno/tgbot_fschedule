@@ -7,6 +7,7 @@ type Team struct {
 	ShortName string `json:"shortName"`
 	Tla       string `json:"tla"`
 	Founded   int    `json:"founded"`
+	League    string `json:"league"`
 }
 
 // структура для хранения информации о командах

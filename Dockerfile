@@ -2,15 +2,17 @@ FROM golang:1.23-alpine
 
 WORKDIR /app
 
+# Копируем go.mod и go.sum для установки зависимостей
+COPY go.mod go.sum ./
+RUN go mod download
+
+
 RUN apk update && apk add --no-cache \
     ca-certificates \
     fontconfig \
     gcc \
     musl-dev
 
-# Копируем go.mod и go.sum для установки зависимостей
-COPY go.mod go.sum ./
-RUN go mod download
 
 # Проверяем целостность модулей
 RUN go mod verify

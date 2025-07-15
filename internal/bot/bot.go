@@ -6,13 +6,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
 	"github.com/vsespontanno/tgbot_fschedule/internal/bot/handlers"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/config"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
-	"github.com/vsespontanno/tgbot_fschedule/internal/jobs"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	pgRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/postgres"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
@@ -55,19 +53,17 @@ func Start() error {
 	// Initialize stores and services
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
-	teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
+	// teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
 	userStore := pgRepo.NewPGUserStore(pg)
 
 	footballData := api.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
 
 	standingsService := service.NewStandingService(standingsStore)
 	matchesService := service.NewMatchesService(matchesStore, footballData)
-	teamsService := service.NewTeamsService(teamsStore)
+	// teamsService := service.NewTeamsService(teamsStore)
 	userService := service.NewUserService(userStore)
 
-	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
-
-	jobs.Start(mongoClient, redisClient, calculator, matchesService)
+	// calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
 
 	return handleUpdates(bot, standingsService, matchesService, userService, redisClient)
 }

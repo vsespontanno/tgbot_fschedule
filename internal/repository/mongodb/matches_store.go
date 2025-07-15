@@ -15,11 +15,14 @@ import (
 // интерфейс для взаимодействия с данными матчей и команд
 type MatchesStore interface {
 	GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
-	GetMatchByID(ctx context.Context, matchID int) (types.Match, error)
-	GetRecentMatches(ctx context.Context, teamID int, lastN int) ([]types.Match, error)
 	SaveMatchesToMongoDB(matches []types.Match, from, to string) error
 	UpdateMatchRatingInMongoDB(match types.Match, rating float64) error
 	UpsertMatch(ctx context.Context, match types.Match) error
+}
+
+type MatchCalcStore interface {
+	GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
+	GetRecentMatches(ctx context.Context, teamID int, lastN int) ([]types.Match, error)
 }
 
 // структура для взаимодействия с данными матчей и команд
@@ -81,19 +84,6 @@ func (m *MongoDBMatchesStore) GetRecentMatches(ctx context.Context, teamID int, 
 		return nil, fmt.Errorf("failed to decode recent matches: %w", err)
 	}
 	return matches, err
-}
-
-func (m *MongoDBMatchesStore) GetMatchByID(ctx context.Context, matchID int) (types.Match, error) {
-	collection := m.client.Database("football").Collection("matches")
-	filter := bson.M{"id": matchID}
-
-	var match types.Match
-	err := collection.FindOne(ctx, filter).Decode(&match)
-	if err != nil {
-		return types.Match{}, fmt.Errorf("error finding match with ID %d: %w", matchID, err)
-	}
-
-	return match, nil
 }
 
 func (m *MongoDBMatchesStore) SaveMatchesToMongoDB(matches []types.Match, from, to string) error {

@@ -32,11 +32,3 @@ func (s *StandingsService) HandleSaveStandings(ctx context.Context, league strin
 	}
 	return nil
 }
-
-func (s *StandingsService) HandleGetTeamStanding(ctx context.Context, league string, id int) (int, error) {
-	standing, err := s.standingsStore.GetTeamStanding(ctx, league, id)
-	if err != nil {
-		return 0, err
-	}
-	return standing, nil
-}

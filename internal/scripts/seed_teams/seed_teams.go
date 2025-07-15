@@ -2,64 +2,27 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
 
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
+	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
+	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
 )
-
-func saveTeamsToMongoDB(collection *mongo.Collection, teams []types.Team) error {
-	var documents []interface{}
-	for _, team := range teams {
-		documents = append(documents, team)
-	}
-
-	_, err := collection.InsertMany(context.TODO(), documents)
-	return err
-}
-
-func getTeamsFromAPI(apiKey, leagueCode string) ([]types.Team, error) {
-	url := fmt.Sprintf("https://api.football-data.org/v4/competitions/%s/teams", leagueCode)
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("X-Auth-Token", apiKey)
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var teamsResponse types.TeamsResponse
-	err = json.Unmarshal(body, &teamsResponse)
-	if err != nil {
-		return nil, err
-	}
-
-	return teamsResponse.Teams, nil
-}
 
 func main() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	ctx := context.Background()
 
 	mongoURI := os.Getenv("MONGODB_URI")
 	if mongoURI == "" {
@@ -71,16 +34,21 @@ func main() {
 		log.Fatal("FOOTBALL_DATA_API_KEY is not set in the .env file")
 	}
 
+	httpClient := &http.Client{}
+
+	apiClient := api.NewFootballAPIClient(httpClient, apiKey)
+
 	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer client.Disconnect(context.Background())
-
+	teamStore := mongoRepo.NewMongoDBTeamsStore(client, "football")
+	teamService := service.NewTeamsService(teamStore)
 	// Для каждой лиги получаем команды и сохраняем в MongoDB
 	for leagueName, league := range types.Leagues {
 		log.Printf("Fetching teams for %s...", leagueName)
-		teams, err := getTeamsFromAPI(apiKey, league.Code)
+		teams, err := apiClient.FetchTeams(ctx, league.Code)
 		if err != nil {
 			log.Printf("Error fetching teams for %s: %v", leagueName, err)
 			continue
@@ -90,6 +58,7 @@ func main() {
 			continue
 		}
 		for i := range teams {
+			teams[i].League = leagueName
 			switch teams[i].Name {
 			case "Sevilla FC":
 				teams[i].ShortName = "Sevilla"
@@ -136,10 +105,17 @@ func main() {
 			}
 		}
 
-		collection := client.Database("football").Collection(leagueName)
-		err = saveTeamsToMongoDB(collection, teams)
+		// SAVING IN THEIR OWN LEAGE
+		err = teamService.HandleSaveTeams(ctx, leagueName, teams)
 		if err != nil {
-			log.Printf("Error saving teams for %s: %v\n", leagueName, err)
+			log.Printf("Error saving teams in league for %s: %v\n", leagueName, err)
+		}
+		// SAVING TO COLLECTION WITH ALL
+		if leagueName != "ChampionsLeague" {
+			err = teamService.HandleSaveTeams(ctx, "Teams", teams)
+			if err != nil {
+				log.Printf("Error saving teams in all teams for %s:", err)
+			}
 		}
 
 		fmt.Printf("Successfully saved %d teams for %s\n", len(teams), leagueName)

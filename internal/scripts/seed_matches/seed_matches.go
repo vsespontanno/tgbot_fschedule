@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -53,24 +51,20 @@ func main() {
 	matchesStore := mongorepo.NewMongoDBMatchesStore(mongoClient, "football")
 	standingsStore := mongorepo.NewMongoDBStandingsStore(mongoClient, "football")
 	teamsStore := mongorepo.NewMongoDBTeamsStore(mongoClient, "football")
-	standingsService := service.NewStandingService(standingsStore)
-	teamsService := service.NewTeamsService(teamsStore)
 	matchesService := service.NewMatchesService(matchesStore, nil)
 	footallClient := api.NewFootballAPIClient(http.DefaultClient, apiKey)
-	calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
-
-	httpclient := &http.Client{}
+	calculator := adapters.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
 
 	// Получаем исторические матчи (с 2025-01-01 по 2025-05-06)
 	logrus.Info("Fetching historical matches...")
-	historicalMatches, err := getHistoricalMatches(apiKey, httpclient, mongoClient, matchesService)
+	historicalMatches, err := getHistoricalMatches(apiKey, mongoClient, matchesService)
 	if err != nil {
 		logrus.Warnf("Warning: Error fetching historical matches: %v", err)
 	} else {
 		logrus.Infof("Successfully fetched %d historical matches", len(historicalMatches))
 	}
 
-	matches, err := footallClient.GetMatches(ctx, from, to)
+	matches, err := footallClient.FetchMatches(ctx, from, to)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -97,11 +91,12 @@ func main() {
 }
 
 // Функция для получения исторических матчей с 2025-01-01 по 2025-05-06
-func getHistoricalMatches(apiKey string, httpclient *http.Client, mongoClient *mongo.Client, matchesService *service.MatchesService) ([]types.Match, error) {
+func getHistoricalMatches(apiKey string, mongoClient *mongo.Client, matchesService *service.MatchesService) ([]types.Match, error) {
 	startDate := "2024-01-01"
 	endDate := "2025-07-02"
 
 	var allMatches []types.Match
+	ctx := context.Background()
 
 	// Разбиваем период на 10-дневные интервалы
 	currentDate := startDate
@@ -114,7 +109,7 @@ func getHistoricalMatches(apiKey string, httpclient *http.Client, mongoClient *m
 
 		logrus.Infof("Fetching matches from %s to %s...", currentDate, intervalEndDate)
 
-		matches, err := fetchMatchesForPeriod(apiKey, currentDate, intervalEndDate, httpclient)
+		matches, err := matchesService.HandleReqMatches(ctx, currentDate, intervalEndDate)
 		if err != nil {
 			return nil, fmt.Errorf("error fetching matches for period %s to %s: %w", currentDate, intervalEndDate, err)
 		}
@@ -142,39 +137,6 @@ func getHistoricalMatches(apiKey string, httpclient *http.Client, mongoClient *m
 	}
 
 	return allMatches, nil
-}
-
-// Функция для получения матчей за конкретный период
-func fetchMatchesForPeriod(apiKey string, startDate string, endDate string, httpclient *http.Client) ([]types.Match, error) {
-	url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", startDate, endDate)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("X-Auth-Token", apiKey)
-
-	resp, err := httpclient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error making request: %v", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %v", err)
-	}
-
-	var MatchesResponse types.MatchesResponse
-	err = json.Unmarshal(body, &MatchesResponse)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
-	}
-
-	Matches := api.Mapper(MatchesResponse)
-
-	return Matches, nil
 }
 
 // Вспомогательная функция для добавления дней к дате

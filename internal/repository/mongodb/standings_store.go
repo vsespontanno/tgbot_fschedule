@@ -14,6 +14,9 @@ import (
 type StandingsStore interface {
 	GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error)
 	SaveStandings(ctx context.Context, collectionName string, standings []types.Standing) error
+}
+
+type StandingsCalcStore interface {
 	GetTeamStanding(ctx context.Context, collectionName string, id int) (int, error)
 }
 

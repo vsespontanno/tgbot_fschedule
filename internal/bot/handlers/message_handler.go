@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/vsespontanno/tgbot_fschedule/internal/bot/keyboards"
+	"github.com/vsespontanno/tgbot_fschedule/internal/bot/response"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
@@ -70,17 +71,15 @@ func handleHelp(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 }
 
 func handleTableCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите лигу для просмотра турнирной таблицы:")
-	msg.ReplyMarkup = keyboards.KeyboardStandings
-	_, err := bot.Send(msg)
+	text := "Выберите лигу для просмотра турнирной таблицы:"
+	err := response.SendMessageWithKeyboard(bot, message.Chat.ID, text, keyboards.KeyboardStandings)
 	return err
 }
 
 func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
 	// Создаем inline-клавиатуру с двумя опциями
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите тип расписания:")
-	msg.ReplyMarkup = keyboards.Keyboard_Schedule
-	_, err := bot.Send(msg)
+	text := "Выберите тип расписания:"
+	err := response.SendMessageWithKeyboard(bot, message.Chat.ID, text, keyboards.Keyboard_Schedule)
 	return err
 }
 
