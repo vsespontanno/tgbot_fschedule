@@ -1,6 +1,6 @@
 package types
 
-// мапа для хранения информации о лигах
+// Мапа для хранения информации о лигах
 var Leagues = map[string]League{
 	"PremierLeague": {
 		Name:           "APL",
@@ -63,7 +63,7 @@ var Leagues = map[string]League{
 	// },
 }
 
-// структура для хранения информации о лиге
+// Структура для хранения информации о лиге
 type League struct {
 	Name           string
 	CollectionName string

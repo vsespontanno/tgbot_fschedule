@@ -1,6 +1,6 @@
 package types
 
-// структура для хранения информации о таблице
+// Структура для хранения информации о таблице
 type Standing struct {
 	Position       int  `json:"position" bson:"position"`
 	Team           Team `json:"team" bson:"team"`
@@ -14,7 +14,7 @@ type Standing struct {
 	GoalDifference int  `json:"goalDifference" bson:"goaldifference"`
 }
 
-// структура для хранения информации о таблице
+// Cтруктура для декодинга Json-файла из API
 type StandingsResponse struct {
 	Standings []struct {
 		Table []Standing `json:"table"`

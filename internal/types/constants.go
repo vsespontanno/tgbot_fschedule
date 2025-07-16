@@ -1,5 +1,6 @@
 package types
 
+// Мапы той или иной информации, для подсчёта рейтинга матчей
 var (
 	CLstage = map[string]float64{
 		"PLAYOFFS":       0.25, // 1/16
@@ -10,12 +11,12 @@ var (
 	}
 
 	LeagueNorm = map[string]float64{
-		"Champions League": 1.0,
-		"PremierLeague":    0.9,
-		"LaLiga":           0.8,
-		"SerieA":           0.8,
-		"Bundesliga":       0.75,
-		"Ligue1":           0.7,
+		"ChampionsLeague": 1.0,
+		"PremierLeague":   0.9,
+		"LaLiga":          0.8,
+		"SerieA":          0.8,
+		"Bundesliga":      0.75,
+		"Ligue1":          0.7,
 	}
 
 	TeamsInLeague = map[string]int{

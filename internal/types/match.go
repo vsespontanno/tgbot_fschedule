@@ -1,6 +1,6 @@
 package types
 
-// структура для хранения информации о матче
+// Структура для хранения информации о матче
 type Match struct {
 	ID          int `json:"id"`
 	Competition struct {
@@ -28,7 +28,7 @@ type Match struct {
 	Rating float64 `json:"rating"`
 }
 
-// структура для хранения информации о матчах
+// Cтруктура для декодинга Json-файла из API
 type MatchesResponse struct {
 	Matches []Match `json:"matches"`
 }

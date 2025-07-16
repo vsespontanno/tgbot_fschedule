@@ -9,7 +9,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
-	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
@@ -32,8 +31,8 @@ func RegisterTeamsJob(s *gocron.Scheduler, service *service.TeamsService, apiSer
 				log.Printf("Failed to fetch teams for %s: %v", leagueName, err)
 				continue
 			}
-			tools.TeamsFilter(teams, leagueName)
 			for _, team := range teams {
+				team.League = leagueName
 
 				if err := service.HandleUpsertMatch(context.Background(), league.CollectionName, team); err != nil {
 					log.Printf("Failed to save team for %s: %v", leagueName, err)

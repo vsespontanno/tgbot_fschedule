@@ -27,38 +27,16 @@ func CalculateForm(matches []types.Match, teamID int) float64 {
 
 // GetLeaguesForTeams определяет лиги для команд
 func GetLeaguesForTeams(ctx context.Context, calculator Calculator, homeTeamID int, awayTeamID int) (homeLeague string, awayLeague string, err error) {
-	// Логика осталась прежней
-	foundHomeLeague := false
-	league, getLeagueErr := calculator.HandleGetLeague(ctx, "Teams", homeTeamID)
-	if getLeagueErr != nil {
-		getLeagueErr = fmt.Errorf("error checking league for home team %d: %s", homeTeamID, getLeagueErr)
-		return "", "", getLeagueErr
+	homeLeague, err = calculator.HandleGetLeague(ctx, "Teams", homeTeamID)
+	if err != nil {
+		return "", "", fmt.Errorf("error getting home league: %w", err)
 	}
-	if league != "Wrong League" {
-		homeLeague = league
-		foundHomeLeague = true
-		err = nil
-	}
-	if !foundHomeLeague {
-		fmt.Printf("Команда с id=%d не найдена ни в одной лиге\n", homeTeamID)
-		return "", "", nil
-	}
-
-	var awayErr error
-	foundAwayLeague := false
-	league, getLeagueErr = calculator.HandleGetLeague(ctx, "Teams", awayTeamID)
-	if getLeagueErr != nil {
-		getLeagueErr = fmt.Errorf("error checking league for away team %d: %s", awayTeamID, getLeagueErr)
-		return "", "", getLeagueErr
-	}
-	if league != "Wrong League" {
-		awayLeague = league
-		foundAwayLeague = true
-	}
-	if !foundAwayLeague {
-		return homeLeague, "", awayErr
+	awayLeague, err = calculator.HandleGetLeague(ctx, "Teams", awayTeamID)
+	if err != nil {
+		return "", "", fmt.Errorf("error getting away league: %w", err)
 	}
 	return homeLeague, awayLeague, nil
+
 }
 
 func CalculatePositionOfTeams(ctx context.Context, calculator Calculator, match types.Match) (homeTeam, awayTeam float64, err error) {
@@ -69,7 +47,9 @@ func CalculatePositionOfTeams(ctx context.Context, calculator Calculator, match 
 	if err != nil {
 		return -1, -1, fmt.Errorf("error getting leagues for teams: %s", err)
 	}
-
+	if HomeLeague == "" || AwayLeague == "" {
+		return -1, -1, err
+	}
 	posHome, err := calculator.HandleGetTeamStanding(ctx, HomeLeague, HomeID)
 	if err != nil {
 		return -1, -1, fmt.Errorf("error getting home team standing: %s", err)
@@ -94,7 +74,7 @@ func CalculateRatingOfMatch(ctx context.Context, match types.Match, calculator C
 	// 2) Лиги и вес
 	homeLeague, awayLeague, err := GetLeaguesForTeams(ctx, calculator, match.HomeTeam.ID, match.AwayTeam.ID)
 	if err != nil || homeLeague == "" || awayLeague == "" {
-		fmt.Printf("Матч %s - %s пропущен: проблема с лигами\n", match.HomeTeam.Name, match.AwayTeam.Name)
+		fmt.Printf("Матч %s - %s пропущен: проблема с лигами\nЛиги: %s - %s\nАйдишники: %d - %d\n", match.HomeTeam.Name, match.AwayTeam.Name, homeLeague, awayLeague, match.HomeTeam.ID, match.AwayTeam.ID)
 		return 0, nil
 	}
 	avgLeagueWeight := (types.LeagueNorm[homeLeague] + types.LeagueNorm[awayLeague]) / 2.0

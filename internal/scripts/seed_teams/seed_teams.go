@@ -11,7 +11,6 @@ import (
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
-	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/joho/godotenv"
@@ -58,8 +57,12 @@ func main() {
 			log.Printf("No teams found for %s\n", leagueName)
 			continue
 		}
-		tools.TeamsFilter(teams, leagueName)
 
+		for i := range teams {
+			if teams[i].League == "" {
+				teams[i].League = leagueName
+			}
+		}
 		// SAVING IN THEIR OWN LEAGE
 		err = teamService.HandleSaveTeams(ctx, leagueName, teams)
 		if err != nil {

@@ -38,7 +38,6 @@ func NewFootballAPIClient(httpClient *http.Client, apiKey string) *FootballAPICl
 func (m *FootballAPIClient) FetchMatches(ctx context.Context, from, to string) ([]types.Match, error) {
 
 	url := fmt.Sprintf("https://api.football-data.org/v4/matches?dateFrom=%s&dateTo=%s", from, to)
-	// req, err := http.NewRequest("GET", today)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -57,7 +56,7 @@ func (m *FootballAPIClient) FetchMatches(ctx context.Context, from, to string) (
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
-	var MatchesResponse []types.Match
+	var MatchesResponse types.MatchesResponse
 	err = json.Unmarshal(body, &MatchesResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
@@ -92,15 +91,15 @@ func (m *FootballAPIClient) FetchStandings(ctx context.Context, leagueCode strin
 		return nil, fmt.Errorf("error reading response body: %s", err)
 	}
 
-	var standingsResponse []types.Standing
+	var standingsResponse types.StandingsResponse
 	err = json.Unmarshal(body, &standingsResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling JSON: %s, body: %s", err, string(body))
 	}
 
-	if len(standingsResponse) > 0 {
-		tools.StandingsFilter(standingsResponse)
-		return standingsResponse, nil
+	if len(standingsResponse.Standings) > 0 && len(standingsResponse.Standings[0].Table) > 0 {
+		tools.StandingsFilter(standingsResponse.Standings[0].Table)
+		return standingsResponse.Standings[0].Table, nil
 	}
 	return nil, fmt.Errorf("no standings found for league code: %s", leagueCode)
 }
@@ -124,11 +123,12 @@ func (m *FootballAPIClient) FetchTeams(ctx context.Context, leagueCode string) (
 		return nil, err
 	}
 
-	var teamsResponse []types.Team
+	var teamsResponse types.TeamsResponse
 	err = json.Unmarshal(body, &teamsResponse)
 	if err != nil {
 		return nil, err
 	}
+	tools.TeamsFilter(teamsResponse)
 
-	return teamsResponse, nil
+	return teamsResponse.Teams, nil
 }

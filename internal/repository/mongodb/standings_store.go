@@ -94,10 +94,10 @@ func (m *MongoDBStandingsStore) GetTeamStanding(ctx context.Context, collectionN
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			// Добавлено логирование при отсутствии документов
-			fmt.Printf("No document found for team ID %d in %s.%s\n", id, m.dbName, fullCollectionName)
+			fmt.Printf("No document found for team ID %d in collection %s\n", id, collectionName)
 			return -1, nil
 		}
-		return 0, fmt.Errorf("error finding team standing for ID %d in %s: %w", id, fullCollectionName, err)
+		return 0, fmt.Errorf("error finding team standing for ID %d in %s: %w", id, collectionName, err)
 	}
 
 	return standing.Position, nil

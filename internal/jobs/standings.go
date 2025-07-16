@@ -8,7 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
-	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/go-co-op/gocron"
@@ -32,7 +31,6 @@ func RegisterStandingsJob(s *gocron.Scheduler, service *service.StandingsService
 				log.Printf("Failed to fetch standings for %s: %v", leagueName, err)
 				continue
 			}
-			tools.StandingsFilter(standings)
 
 			if err := service.HandleSaveStandings(context.Background(), league.CollectionName, standings); err != nil {
 				log.Printf("Failed to save standings for %s: %v", leagueName, err)

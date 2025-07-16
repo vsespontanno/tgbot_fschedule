@@ -12,7 +12,6 @@ import (
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
-	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 )
 
 // Функция, которая апдейтит матче в фоне, пока работает бот
@@ -33,7 +32,6 @@ func RegisterMatchesJob(s *gocron.Scheduler, service *service.MatchesService, re
 			log.Printf("Failed to fetch matches: %v", err)
 			return
 		}
-		tools.MatchFilter(matches)
 		log.Printf("Fetched %d matches", len(matches))
 
 		for _, match := range matches {
