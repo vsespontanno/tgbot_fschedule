@@ -24,3 +24,11 @@ func (s *TeamsService) HandleSaveTeams(ctx context.Context, collectionName strin
 	}
 	return nil
 }
+
+func (s *TeamsService) HandleUpsertMatch(ctx context.Context, collectionName string, team types.Team) error {
+	err := s.teamsStore.UpsertTeamToMongoDB(ctx, collectionName, team)
+	if err != nil {
+		return err
+	}
+	return nil
+}

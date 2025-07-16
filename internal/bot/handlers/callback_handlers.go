@@ -43,6 +43,7 @@ func HandleCallbackQuery(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, ma
 }
 
 // обработка таблицы и вывод изображения
+// todo: если нет стендингов, отправить что их нет.
 func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, standingsService *service.StandingsService, redisClient *cache.RedisClient, league types.League) error {
 	standings, err := standingsService.HandleGetStandings(context.Background(), league.CollectionName)
 	if err != nil {
@@ -67,15 +68,15 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 	return err
 }
 
-func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, league types.League, button string) error {
+func HandleScheduleCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, league types.League, button string) error {
 	// Отвечаем на callback запрос
-	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
-	leagueCode := strings.TrimPrefix(callback.Data, "schedule_")
+	callbackConfig := tgbotapi.NewCallback(query.ID, "")
+	leagueCode := strings.TrimPrefix(query.Data, "schedule_")
 	leagueName := getLeagueName(leagueCode)
 
 	matches, err := service.HandleGetMatches(context.Background())
 	if err != nil {
-		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при получении расписания матчей")
+		msg := tgbotapi.NewMessage(query.Message.Chat.ID, "Произошла ошибка при получении расписания матчей")
 		bot.Send(msg)
 		if _, err := bot.Request(callbackConfig); err != nil {
 			return err
@@ -92,34 +93,27 @@ func HandleScheduleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQue
 	}
 
 	if len(leagueMatches) == 0 {
-		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, fmt.Sprintf("В %s матчей не запланировано", leagueName))
+		msg := tgbotapi.NewMessage(query.Message.Chat.ID, fmt.Sprintf("В %s матчей не запланировано", leagueName))
 		bot.Send(msg)
 		if _, err := bot.Request(callbackConfig); err != nil {
 			return err
 		}
 		return nil
 	}
+	imagePath := fmt.Sprintf("%s.png", leagueName)
 
 	// Генерируем изображение с расписанием
-	buf, err := GenerateScheduleImage(leagueMatches, redisClient, leagueName)
-	if err != nil {
-		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка при создании изображения с расписанием")
-		bot.Send(msg)
+	if err := GenerateScheduleImage(leagueMatches, imagePath, redisClient); err != nil {
+		resp.SendMessage(bot, query.Message.Chat.ID, "Произошла ошибка при отправке изображения с матчами: \n")
 		if _, err := bot.Request(callbackConfig); err != nil {
 			return err
 		}
 		return err
 	}
 
-	// Отправляем изображение
-	photo := tgbotapi.FileBytes{
-		Name:  "schedule.png",
-		Bytes: buf.Bytes(),
-	}
-
-	err = resp.SendPhoto(bot, callback.Message.Chat.ID, photo.Name)
+	err = resp.SendPhoto(bot, query.Message.Chat.ID, imagePath)
 	if err != nil {
-		resp.SendMessage(bot, callback.Message.Chat.ID, "Произошла ошибка при отправке изображения с расписанием")
+		resp.SendMessage(bot, query.Message.Chat.ID, "Произошла ошибка при отправке изображения с расписанием")
 		return err
 	}
 	if _, err := bot.Request(callbackConfig); err != nil {
@@ -153,10 +147,10 @@ func getLeagueName(code string) string {
 	}
 }
 
-func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, button string) error {
+func HandleTopMatches(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery, service *service.MatchesService, redisClient *cache.RedisClient, button string) error {
 
 	ctx := context.Background()
-	callbackConfig := tgbotapi.NewCallback(callback.ID, "")
+	callbackConfig := tgbotapi.NewCallback(query.ID, "")
 	matches, err := service.HandleGetMatches(ctx)
 	if err != nil {
 		return err
@@ -171,25 +165,21 @@ func HandleTopMatches(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery, se
 	}
 
 	if len(matches) == 0 {
-		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "На ближайшие дни нет топовых матчей.")
+		msg := tgbotapi.NewMessage(query.Message.Chat.ID, "На ближайшие дни нет топовых матчей.")
 		bot.Send(msg)
 		return nil
 	}
+	imagePath := fmt.Sprintf("%s.png", "top_matches")
 
-	buf, err := GenerateScheduleImage(matches, redisClient, button)
-	if err != nil {
-		resp.SendMessage(bot, callback.Message.Chat.ID, "Произошла ошибка при создании изображения с топ-матчами")
+	if err := GenerateScheduleImage(matches, imagePath, redisClient); err != nil {
+		resp.SendMessage(bot, query.Message.Chat.ID, "Произошла ошибка при создании изображения с топ-матчами")
 		return err
 	}
 
-	photo := tgbotapi.FileBytes{
-		Name:  "top_matches_schedule.png",
-		Bytes: buf.Bytes(),
-	}
-	err = resp.SendPhoto(bot, callback.Message.Chat.ID, photo.Name)
+	err = resp.SendPhoto(bot, query.Message.Chat.ID, imagePath)
 	if err != nil {
-		resp.SendMessage(bot, callback.Message.Chat.ID, "Произошла ошибка при отправке изображения с топ-матчами")
-		return err
+		resp.SendMessage(bot, query.Message.Chat.ID, "Произошла ошибка при отправке изображения с таблицей")
+		return fmt.Errorf("error sending image for table: %w", err)
 	}
 
 	if _, err := bot.Request(callbackConfig); err != nil {

@@ -8,10 +8,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type TeamsStore interface {
 	SaveTeamsToMongoDB(ctx context.Context, collectionName string, teams []types.Team) error
+	UpsertTeamToMongoDB(ctx context.Context, collectionName string, teams types.Team) error
 }
 
 type TeamsCalcStore interface {
@@ -61,5 +63,14 @@ func (m *MongoDBTeamsStore) SaveTeamsToMongoDB(ctx context.Context, collectionNa
 	}
 
 	_, err := collection.InsertMany(context.TODO(), documents)
+	return err
+}
+
+func (m *MongoDBTeamsStore) UpsertTeamToMongoDB(ctx context.Context, collectionName string, team types.Team) error {
+	collection := m.client.Database(m.dbName).Collection(collectionName)
+	filter := bson.M{"id": team.ID}
+	update := bson.M{"$set": team}
+	opts := options.Update().SetUpsert(true)
+	_, err := collection.UpdateOne(ctx, filter, update, opts)
 	return err
 }

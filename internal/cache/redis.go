@@ -17,6 +17,7 @@ type RedisClient struct {
 
 // NewRedisClient создает новый клиент Redis.
 func NewRedisClient(redisURL string) (*RedisClient, error) {
+	logrus.Info("Connecting to Redis...")
 	options, err := redis.ParseURL(redisURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)

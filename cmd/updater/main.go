@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/config"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
@@ -35,20 +36,25 @@ func main() {
 
 	// Инициализация сервисов
 	matchesStore := mongodb.NewMongoDBMatchesStore(mongoClient, "football")
-	// standingsStore := mongodb.NewMongoDBStandingsStore(mongoClient, "football")
-	// teamsStore := mongodb.NewMongoDBTeamsStore(mongoClient, "football")
+	standingsStore := mongodb.NewMongoDBStandingsStore(mongoClient, "football")
+	teamsStore := mongodb.NewMongoDBTeamsStore(mongoClient, "football")
 
 	matchesService := service.NewMatchesService(matchesStore, apiClient)
-	// standingsService := service.NewStandingService(standingsStore)
-	// teamsService := service.NewTeamsService(teamsStore)
+	standingsService := service.NewStandingService(standingsStore)
+	teamsService := service.NewTeamsService(teamsStore)
+	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
 
 	// Создаем планировщик
 	scheduler := gocron.NewScheduler(time.UTC)
+	scheduler.SetMaxConcurrentJobs(1, gocron.RescheduleMode)
 
 	// Регистрируем задачи
-	// jobs.RegisterStandingsJob(scheduler, standingsService, apiClient)
-	// jobs.RegisterTeamsJob(scheduler, teamsService, apiClient)
-	jobs.RegisterMatchesJob(scheduler, matchesService, apiClient)
+	jobs.RegisterStandingsJob(scheduler, standingsService, apiClient)
+	jobs.RegisterTeamsJob(scheduler, teamsService, apiClient)
+	jobs.RegisterMatchesJob(scheduler, matchesService, redisClient, apiClient)
 
 	// Запускаем планировщик
 	scheduler.StartAsync()

@@ -27,8 +27,3 @@ type Match struct {
 	} `json:"score"`
 	Rating float64 `json:"rating"`
 }
-
-// структура для хранения информации о матчах
-type MatchesResponse struct {
-	Matches []Match `json:"matches"`
-}

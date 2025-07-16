@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
@@ -56,13 +57,13 @@ func (m *FootballAPIClient) FetchMatches(ctx context.Context, from, to string) (
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
-	var MatchesResponse types.MatchesResponse
+	var MatchesResponse []types.Match
 	err = json.Unmarshal(body, &MatchesResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling JSON: %v", err)
 	}
 
-	filteredMatches := Mapper(MatchesResponse)
+	filteredMatches := tools.MatchFilter(MatchesResponse)
 
 	return filteredMatches, nil
 }

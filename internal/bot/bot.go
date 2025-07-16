@@ -53,17 +53,13 @@ func Start() error {
 	// Initialize stores and services
 	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
-	// teamsStore := mongoRepo.NewMongoDBTeamsStore(mongoClient, "football")
 	userStore := pgRepo.NewPGUserStore(pg)
 
 	footballData := api.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
 
 	standingsService := service.NewStandingService(standingsStore)
 	matchesService := service.NewMatchesService(matchesStore, footballData)
-	// teamsService := service.NewTeamsService(teamsStore)
 	userService := service.NewUserService(userStore)
-
-	// calculator := adapters.NewCalculatorAdapter(teamsService, standingsService, matchesService)
 
 	return handleUpdates(bot, standingsService, matchesService, userService, redisClient)
 }

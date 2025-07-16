@@ -32,6 +32,35 @@ var Leagues = map[string]League{
 		CollectionName: "ChampionsLeague",
 		Code:           "CL",
 	},
+	// "EuropaLeague": {
+	// 	Name:           "Europa League",
+	// 	CollectionName: "EuropaLeague",
+	// 	Code:           "EC",
+	// },
+
+	// "DFB-Pokal": {
+	// 	Name:           "DFB Pokal",
+	// 	CollectionName: "DFB-Pokal",
+	// 	Code:           "DFB",
+	// },
+
+	// "FA Cup": {
+	// 	Name:           "FA Cup",
+	// 	CollectionName: "FA Cup",
+	// 	Code:           "FAC",
+	// },
+
+	// "Copa del Rey": {
+	// 	Name:           "Copa del Rey",
+	// 	CollectionName: "Copa del Rey",
+	// 	Code:           "CDR",
+	// },
+
+	// "World Cup": {
+	// 	Name:           "World Cup",
+	// 	CollectionName: "World Cup",
+	// 	Code:           "WC",
+	// },
 }
 
 // структура для хранения информации о лиге
