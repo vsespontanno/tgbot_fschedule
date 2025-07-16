@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	api "github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
+	api "github.com/vsespontanno/tgbot_fschedule/internal/api"
 	db "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )

@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
-	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"

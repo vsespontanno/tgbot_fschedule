@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
+	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
-	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
 	mongorepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"

@@ -8,15 +8,16 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/sirupsen/logrus"
+	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
-	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
+	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 )
 
 // Функция, которая апдейтит матче в фоне, пока работает бот
 // Работает раз в 24 часа, можно и реже, но пока так.
-func RegisterMatchesJob(s *gocron.Scheduler, service *service.MatchesService, redisClient *cache.RedisClient, apiService api.MatchApiClient) {
+func RegisterMatchesJob(s *gocron.Scheduler, service *service.MatchesService, redisClient *cache.RedisClient, apiService api.MatchApiClient, calculator domain.Calculator) {
 	logrus.Info("registering matches")
 	// _, err := s.Every(24).Hours().Do(func() {
 	_, err := s.Every(1).Minute().Do(func() {
@@ -37,6 +38,13 @@ func RegisterMatchesJob(s *gocron.Scheduler, service *service.MatchesService, re
 
 		for _, match := range matches {
 			fmt.Println(match.HomeTeam.Name + " vs " + match.AwayTeam.Name)
+			rating, err := domain.CalculateRatingOfMatch(ctx, match, calculator)
+			if err != nil {
+				logrus.Warnf("Error calculating rating for match %v vs %v; error: %v; skipping", match.HomeTeam.Name, match.AwayTeam.Name, err)
+				continue
+
+			}
+			match.Rating = rating
 			err = service.HandleUpsertMatch(ctx, match)
 			if err != nil {
 				log.Printf("Failed to upsert match: %v", err)

@@ -92,14 +92,15 @@ func (m *FootballAPIClient) FetchStandings(ctx context.Context, leagueCode strin
 		return nil, fmt.Errorf("error reading response body: %s", err)
 	}
 
-	var standingsResponse types.StandingsResponse
+	var standingsResponse []types.Standing
 	err = json.Unmarshal(body, &standingsResponse)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling JSON: %s, body: %s", err, string(body))
 	}
 
-	if len(standingsResponse.Standings) > 0 {
-		return standingsResponse.Standings[0].Table, nil
+	if len(standingsResponse) > 0 {
+		tools.StandingsFilter(standingsResponse)
+		return standingsResponse, nil
 	}
 	return nil, fmt.Errorf("no standings found for league code: %s", leagueCode)
 }
@@ -123,11 +124,11 @@ func (m *FootballAPIClient) FetchTeams(ctx context.Context, leagueCode string) (
 		return nil, err
 	}
 
-	var teamsResponse types.TeamsResponse
+	var teamsResponse []types.Team
 	err = json.Unmarshal(body, &teamsResponse)
 	if err != nil {
 		return nil, err
 	}
 
-	return teamsResponse.Teams, nil
+	return teamsResponse, nil
 }

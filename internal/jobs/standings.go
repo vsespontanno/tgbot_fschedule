@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
+	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"

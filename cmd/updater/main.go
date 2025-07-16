@@ -9,10 +9,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
+	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/config"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
-	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/jobs"
 	"github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
@@ -42,6 +43,8 @@ func main() {
 	matchesService := service.NewMatchesService(matchesStore, apiClient)
 	standingsService := service.NewStandingService(standingsStore)
 	teamsService := service.NewTeamsService(teamsStore)
+	calculator := adapters.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
+
 	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to Redis: %v", err)
@@ -54,7 +57,7 @@ func main() {
 	// Регистрируем задачи
 	jobs.RegisterStandingsJob(scheduler, standingsService, apiClient)
 	jobs.RegisterTeamsJob(scheduler, teamsService, apiClient)
-	jobs.RegisterMatchesJob(scheduler, matchesService, redisClient, apiClient)
+	jobs.RegisterMatchesJob(scheduler, matchesService, redisClient, apiClient, calculator)
 
 	// Запускаем планировщик
 	scheduler.StartAsync()

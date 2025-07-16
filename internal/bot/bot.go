@@ -6,11 +6,11 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/bot/handlers"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/config"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
-	"github.com/vsespontanno/tgbot_fschedule/internal/infrastructure/api"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	pgRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/postgres"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
