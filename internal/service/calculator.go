@@ -1,4 +1,4 @@
-package domain
+package service
 
 import (
 	"context"
@@ -62,62 +62,6 @@ func CalculatePositionOfTeams(ctx context.Context, calculator Calculator, match 
 	homeTeamRating := (float64(types.TeamsInLeague[HomeLeague] - posHome)) / float64(types.TeamsInLeague[HomeLeague]-1)
 	awayTeamRating := (float64(types.TeamsInLeague[AwayLeague] - posAway)) / float64(types.TeamsInLeague[AwayLeague]-1)
 	return homeTeamRating, awayTeamRating, nil
-}
-
-func CalculateRatingOfMatch(ctx context.Context, match types.Match, calculator Calculator) (float64, error) {
-	// 1) Сила команд по позициям
-	homeStrength, awayStrength, err := CalculatePositionOfTeams(ctx, calculator, match)
-	if err != nil {
-		return 0, fmt.Errorf("error calculating team strengths: %s", err)
-	}
-
-	// 2) Лиги и вес
-	homeLeague, awayLeague, err := GetLeaguesForTeams(ctx, calculator, match.HomeTeam.ID, match.AwayTeam.ID)
-	if err != nil || homeLeague == "" || awayLeague == "" {
-		fmt.Printf("Матч %s - %s пропущен: проблема с лигами\nЛиги: %s - %s\nАйдишники: %d - %d\n", match.HomeTeam.Name, match.AwayTeam.Name, homeLeague, awayLeague, match.HomeTeam.ID, match.AwayTeam.ID)
-		return 0, nil
-	}
-	avgLeagueWeight := (types.LeagueNorm[homeLeague] + types.LeagueNorm[awayLeague]) / 2.0
-
-	// 3) Форма команд
-	recentMatchesHome, err := calculator.HandleGetRecentMatches(ctx, match.HomeTeam.ID, 5)
-	if err != nil {
-		log.Printf("Error getting recent matches for home team %d: %v", match.HomeTeam.ID, err)
-	}
-	recentMatchesAway, err := calculator.HandleGetRecentMatches(ctx, match.AwayTeam.ID, 5)
-	if err != nil {
-		log.Printf("Error getting recent matches for away team %d: %v", match.AwayTeam.ID, err)
-	}
-	homeForm := CalculateForm(recentMatchesHome, match.HomeTeam.ID)
-	awayForm := CalculateForm(recentMatchesAway, match.AwayTeam.ID)
-	formFactor := (homeForm + awayForm) / 2.0
-
-	// 4) Бонусы
-	derbyBonus := GetDerbyBonus(ctx, calculator, match)
-	stageBonus := 0.0
-	if homeLeague == "Champions League" && match.Stage != "" {
-		stageBonus = types.CLstage[match.Stage]
-	}
-	crossLeagueBonus := 0.0
-	if homeLeague != awayLeague {
-		crossLeagueBonus = 0.15 // Увеличен с 0.1 для большего эффекта
-	}
-
-	// 5) Финальный рейтинг
-	baseRating := (homeStrength+awayStrength)/2.0*0.15 + // Уменьшено влияние позиций
-		avgLeagueWeight*0.35 + // Снижено с 0.4
-		formFactor*0.15 // Добавлено влияние формы
-	rating := baseRating * (1 + derbyBonus + stageBonus + crossLeagueBonus)
-
-	// 6) Ограничение и минимальное значение
-	if rating > 1.0 {
-		rating = 1.0
-	}
-	if rating < 0.1 { // Минимальный рейтинг, чтобы избежать нулей
-		rating = 0.1
-	}
-
-	return rating, nil
 }
 
 func GetDerbyBonus(ctx context.Context, calculator Calculator, match types.Match) float64 {

@@ -7,7 +7,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 
-RUN apk update && apk add --no-cache \
+RUN apk add --no-cache \
     ca-certificates \
     fontconfig \
     gcc \

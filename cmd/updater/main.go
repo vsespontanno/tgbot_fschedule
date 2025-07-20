@@ -9,9 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
-	"github.com/vsespontanno/tgbot_fschedule/internal/api"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
+	"github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/config"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	"github.com/vsespontanno/tgbot_fschedule/internal/jobs"
@@ -33,7 +32,7 @@ func main() {
 	}
 	defer mongoClient.Disconnect(ctx)
 
-	apiClient := api.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
+	apiClient := client.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
 
 	// Инициализация сервисов
 	matchesStore := mongodb.NewMongoDBMatchesStore(mongoClient, "football")
@@ -43,7 +42,7 @@ func main() {
 	matchesService := service.NewMatchesService(matchesStore, apiClient)
 	standingsService := service.NewStandingService(standingsStore)
 	teamsService := service.NewTeamsService(teamsStore)
-	calculator := adapters.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
+	calculator := service.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
 
 	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
 	if err != nil {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/vsespontanno/tgbot_fschedule/internal/api"
+	"github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
@@ -15,7 +15,7 @@ import (
 
 // Функция, которая апдейтит турнирные таблицы в фоне, пока работает бот
 // Работает раз в 6 часов, т.к. после каждого матча таблица обновляется
-func RegisterStandingsJob(s *gocron.Scheduler, service *service.StandingsService, apiService api.StandingsApiClient) {
+func RegisterStandingsJob(s *gocron.Scheduler, service *service.StandingsService, apiService client.StandingsApiClient) {
 	logrus.Info("registering standings")
 	ctx := context.Background()
 	// _, err := s.Every(6).Hours().Do(func() {

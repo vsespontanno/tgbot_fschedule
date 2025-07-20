@@ -1,10 +1,9 @@
 // internal/adapters/calculator_adapter.go
-package adapters
+package service
 
 import (
 	"context"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
@@ -15,7 +14,7 @@ type CalculatorAdapter struct {
 	matchesStore   mongoRepo.MatchCalcStore
 }
 
-func NewCalculatorAdapter(teamsStore mongoRepo.TeamsCalcStore, standingsStore mongoRepo.StandingsCalcStore, matchesStore mongoRepo.MatchCalcStore) domain.Calculator {
+func NewCalculatorAdapter(teamsStore mongoRepo.TeamsCalcStore, standingsStore mongoRepo.StandingsCalcStore, matchesStore mongoRepo.MatchCalcStore) Calculator {
 	return &CalculatorAdapter{teamsStore, standingsStore, matchesStore}
 }
 

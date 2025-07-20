@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/sirupsen/logrus"
-	"github.com/vsespontanno/tgbot_fschedule/internal/api"
+	"github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
@@ -15,7 +15,7 @@ import (
 // Функция, которая апдейтит матче в фоне, пока работает бот
 // Работает раз в 300 дней, т.к. команды меняются только после конца сезона:
 // Команды с нисших дивизионов попадают в дивизионы повыше и наоборот
-func RegisterTeamsJob(s *gocron.Scheduler, service *service.TeamsService, apiService api.TeamsApiClient) {
+func RegisterTeamsJob(s *gocron.Scheduler, service *service.TeamsService, apiService client.TeamsApiClient) {
 	logrus.Info("registering teams")
 
 	ctx := context.Background()

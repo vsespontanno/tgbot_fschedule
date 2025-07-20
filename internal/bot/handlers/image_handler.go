@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
-	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
+	"github.com/vsespontanno/tgbot_fschedule/internal/utils"
 
 	"github.com/sirupsen/logrus"
 )
@@ -32,7 +32,7 @@ func GenerateTableImage(data []types.Standing, filename string, redisClient *cac
 		return fmt.Errorf("no standings data provided")
 	}
 
-	buf, err := service.TableImage(data)
+	buf, err := utils.TableImage(data)
 	if err != nil {
 		return fmt.Errorf("failed to generate table image: %s", err)
 	}
@@ -64,7 +64,7 @@ func GenerateScheduleImage(matches []types.Match, filename string, redisClient *
 	} else if err.Error() != fmt.Sprintf("cache miss for key %s", cacheKey) {
 		logrus.WithField("cache_key", cacheKey).Warn("Cache error: ", err)
 	}
-	buf, err := service.ScheduleImage(matches)
+	buf, err := utils.ScheduleImage(matches)
 	if err != nil {
 		return fmt.Errorf("failed to generate table image: %s", err)
 	}

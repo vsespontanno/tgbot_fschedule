@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/api"
+	"github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
@@ -36,7 +36,7 @@ func main() {
 
 	httpClient := &http.Client{}
 
-	apiClient := api.NewFootballAPIClient(httpClient, apiKey)
+	apiClient := client.NewFootballAPIClient(httpClient, apiKey)
 
 	client, err := db.ConnectToMongoDB(mongoURI)
 	if err != nil {

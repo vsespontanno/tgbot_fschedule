@@ -1,4 +1,4 @@
-package domain
+package service
 
 import (
 	"context"
@@ -7,17 +7,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
-	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
+	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	"github.com/joho/godotenv"
 )
 
-// setupCalculator создает и возвращает адаптер domain.Calculator с реальными сервисами
-func setupCalculator(t *testing.T) domain.Calculator {
+// setupCalculator создает и возвращает адаптер service.Calculator с реальными сервисами
+func setupCalculator(t *testing.T) service.Calculator {
 	err := godotenv.Load("../.env")
 	if err != nil {
 		t.Fatalf("Error loading .env file: %v", err)
@@ -36,8 +35,8 @@ func setupCalculator(t *testing.T) domain.Calculator {
 	teamsStore := mongoRepo.NewMongoDBTeamsStore(client, "football")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(client, "football")
 
-	// Адаптер домена реализует интерфейс domain.Calculator
-	calculator := adapters.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
+	// Адаптер домена реализует интерфейс service.Calculator
+	calculator := service.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
 	return calculator
 }
 
@@ -48,7 +47,7 @@ func TestCalculatePositionOfTeams(t *testing.T) {
 	homeID := 80  // пример ID Sevilla FC
 	awayID := 275 // пример ID UD Las Palmas
 
-	homeLeague, awayLeague, err := domain.GetLeaguesForTeams(context.Background(), calculator, homeID, awayID)
+	homeLeague, awayLeague, err := service.GetLeaguesForTeams(context.Background(), calculator, homeID, awayID)
 	if err != nil {
 		t.Fatalf("Failed to get leagues for teams: %v", err)
 	}
@@ -92,13 +91,13 @@ func TestCalculateRatingOfMatch(t *testing.T) {
 	}
 	//Данные для первого матча
 	// 1) Сила команд по позициям
-	homeStrength, awayStrength, err := domain.CalculatePositionOfTeams(ctx, calculator, match1)
+	homeStrength, awayStrength, err := service.CalculatePositionOfTeams(ctx, calculator, match1)
 	if err != nil {
 		t.Errorf("error calculating team strengths: %v", err)
 	}
 	fmt.Printf("Сила команд: Athletic Club - %f; Deportivo Alavés - %f\n", homeStrength, awayStrength)
 	// 2) Лиги и вес
-	homeLeague, awayLeague, err := domain.GetLeaguesForTeams(ctx, calculator, match1.HomeTeam.ID, match1.AwayTeam.ID)
+	homeLeague, awayLeague, err := service.GetLeaguesForTeams(ctx, calculator, match1.HomeTeam.ID, match1.AwayTeam.ID)
 	if err != nil || homeLeague == "" || awayLeague == "" {
 		t.Errorf("Матч %s - %s пропущен: проблема с лигами\n", match1.HomeTeam.Name, match1.AwayTeam.Name)
 	}
@@ -113,12 +112,12 @@ func TestCalculateRatingOfMatch(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting recent matches for away team %d: %v", match1.AwayTeam.ID, err)
 	}
-	homeForm := domain.CalculateForm(recentMatchesHome, match1.HomeTeam.ID)
-	awayForm := domain.CalculateForm(recentMatchesAway, match1.AwayTeam.ID)
+	homeForm := service.CalculateForm(recentMatchesHome, match1.HomeTeam.ID)
+	awayForm := service.CalculateForm(recentMatchesAway, match1.AwayTeam.ID)
 	formFactor := (homeForm + awayForm) / 2.0
 	fmt.Printf("Формы каждой команды: Athletic Club - %f; Deportivo Alavés - %f\nОбщая форма - %f\n", homeForm, awayForm, formFactor)
 	// 4) Бонусы
-	derbyBonus := domain.GetDerbyBonus(ctx, calculator, match1)
+	derbyBonus := service.GetDerbyBonus(ctx, calculator, match1)
 	stageBonus := 0.0
 	if homeLeague == "Champions League" && match1.Stage != "" {
 		stageBonus = types.CLstage[match1.Stage]
@@ -137,13 +136,13 @@ func TestCalculateRatingOfMatch(t *testing.T) {
 	fmt.Println("-----------------------------------")
 	//Данные для второго матча
 	// 1) Сила команд по позициям
-	homeStrength1, awayStrength1, err := domain.CalculatePositionOfTeams(ctx, calculator, match2)
+	homeStrength1, awayStrength1, err := service.CalculatePositionOfTeams(ctx, calculator, match2)
 	if err != nil {
 		t.Errorf("error calculating team strengths: %v", err)
 	}
 	fmt.Printf("Сила команд: Bayer 04 Leverkusen - %f; Borussia Dortmund - %f\n", homeStrength1, awayStrength1)
 	// 2) Лиги и вес
-	homeLeague1, awayLeague1, err := domain.GetLeaguesForTeams(ctx, calculator, match2.HomeTeam.ID, match2.AwayTeam.ID)
+	homeLeague1, awayLeague1, err := service.GetLeaguesForTeams(ctx, calculator, match2.HomeTeam.ID, match2.AwayTeam.ID)
 	if err != nil || homeLeague1 == "" || awayLeague1 == "" {
 		t.Errorf("Матч %s - %s пропущен: проблема с лигами\n", match2.HomeTeam.Name, match2.AwayTeam.Name)
 	}
@@ -158,12 +157,12 @@ func TestCalculateRatingOfMatch(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error getting recent matches for away team %d: %v", match2.AwayTeam.ID, err)
 	}
-	homeForm1 := domain.CalculateForm(recentMatchesHome1, match2.HomeTeam.ID)
-	awayForm1 := domain.CalculateForm(recentMatchesAway1, match2.AwayTeam.ID)
+	homeForm1 := service.CalculateForm(recentMatchesHome1, match2.HomeTeam.ID)
+	awayForm1 := service.CalculateForm(recentMatchesAway1, match2.AwayTeam.ID)
 	formFactor1 := (homeForm1 + awayForm1) / 2.0
 	fmt.Printf("Формы каждой команды: Bayer 04 Leverkusen - %f; Borussia Dortmund - %f\nОбщая форма - %f\n", homeForm1, awayForm1, formFactor1)
 	// 4) Бонусы
-	derbyBonus1 := domain.GetDerbyBonus(ctx, calculator, match1)
+	derbyBonus1 := service.GetDerbyBonus(ctx, calculator, match1)
 	stageBonus1 := 0.0
 	if homeLeague1 == "Champions League" && match2.Stage != "" {
 		stageBonus1 = types.CLstage[match2.Stage]
@@ -181,7 +180,7 @@ func TestCalculateRatingOfMatch(t *testing.T) {
 	fmt.Printf("Финальный рейтинг: %f\n", rating1)
 }
 
-func FindMatchByTeamNames(t *testing.T, calculator domain.Calculator, homeTeamName, awayTeamName string) (types.Match, error) {
+func FindMatchByTeamNames(t *testing.T, calculator service.Calculator, homeTeamName, awayTeamName string) (types.Match, error) {
 
 	// Получаем все матчи
 	matches, err := calculator.HandleGetMatches(context.Background())

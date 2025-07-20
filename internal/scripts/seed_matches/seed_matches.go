@@ -8,10 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/adapters"
-	"github.com/vsespontanno/tgbot_fschedule/internal/api"
+	apiClient "github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
-	"github.com/vsespontanno/tgbot_fschedule/internal/domain"
 	mongorepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
@@ -50,9 +48,8 @@ func main() {
 	standingsStore := mongorepo.NewMongoDBStandingsStore(mongoClient, "football")
 	teamsStore := mongorepo.NewMongoDBTeamsStore(mongoClient, "football")
 	matchesService := service.NewMatchesService(matchesStore, nil)
-	footallClient := api.NewFootballAPIClient(http.DefaultClient, apiKey)
-	calculator := adapters.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
-
+	footallClient := apiClient.NewFootballAPIClient(http.DefaultClient, apiKey)
+	calculator := service.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
 	// // Получаем исторические матчи (с 2025-01-01 по 2025-05-06)
 	// logrus.Info("Fetching historical matches...")
 	// historicalMatches, err := getHistoricalMatches(apiKey, mongoClient, matchesService)
@@ -72,7 +69,7 @@ func main() {
 	}
 	fmt.Printf("Successfully saved %d matches\n", len(matches))
 	for _, match := range matches {
-		rating, err := domain.CalculateRatingOfMatch(ctx, match, calculator)
+		rating, err := matchesService.CalculateRatingOfMatch(ctx, match, calculator)
 		if err != nil {
 			logrus.Warnf("Error calculating rating for match %v vs %v; error: %v; skipping", match.HomeTeam.Name, match.AwayTeam.Name, err)
 			continue

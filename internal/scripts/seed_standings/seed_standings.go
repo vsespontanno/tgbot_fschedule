@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/api"
+	apiClient "github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"
 	"github.com/vsespontanno/tgbot_fschedule/internal/tools"
@@ -38,7 +38,7 @@ func main() {
 	defer client.Disconnect(context.TODO())
 
 	store := mongoRepo.NewMongoDBStandingsStore(client, "football")
-	footallClient := api.NewFootballAPIClient(&http.Client{}, apiKey)
+	footallClient := apiClient.NewFootballAPIClient(&http.Client{}, apiKey)
 	for leagueName, league := range types.Leagues {
 		var standings []types.Standing
 		var err error

@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/api"
+	"github.com/vsespontanno/tgbot_fschedule/internal/bot/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/bot/handlers"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/config"
@@ -55,7 +55,7 @@ func Start() error {
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
 	userStore := pgRepo.NewPGUserStore(pg)
 
-	footballData := api.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
+	footballData := client.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
 
 	standingsService := service.NewStandingService(standingsStore)
 	matchesService := service.NewMatchesService(matchesStore, footballData)
