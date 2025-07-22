@@ -6,9 +6,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/vsespontanno/tgbot_fschedule/internal/bot/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/bot/handlers"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
+	"github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/config"
 	"github.com/vsespontanno/tgbot_fschedule/internal/db"
 	mongoRepo "github.com/vsespontanno/tgbot_fschedule/internal/repository/mongodb"

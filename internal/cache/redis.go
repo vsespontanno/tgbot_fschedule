@@ -81,9 +81,16 @@ func (c *RedisClient) GetBytes(ctx context.Context, key string) ([]byte, error) 
 }
 
 func (c *RedisClient) DeleteByPattern(ctx context.Context, pattern string) error {
-	keys, err := c.client.Keys(ctx, pattern).Result()
-	if err != nil {
-		return err
+	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
+	var keys []string
+	for iter.Next(ctx) {
+		keys = append(keys, iter.Val())
+	}
+	if err := iter.Err(); err != nil {
+		return fmt.Errorf("failed to scan keys: %w", err)
+	}
+	if len(keys) == 0 {
+		return nil
 	}
 	return c.client.Del(ctx, keys...).Err()
 }

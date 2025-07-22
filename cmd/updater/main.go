@@ -54,7 +54,7 @@ func main() {
 	scheduler.SetMaxConcurrentJobs(1, gocron.RescheduleMode)
 
 	// Регистрируем задачи
-	jobs.RegisterStandingsJob(scheduler, standingsService, apiClient)
+	jobs.RegisterStandingsJob(scheduler, standingsService, redisClient, apiClient)
 	jobs.RegisterTeamsJob(scheduler, teamsService, apiClient)
 	jobs.RegisterMatchesJob(scheduler, matchesService, redisClient, apiClient, calculator)
 

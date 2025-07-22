@@ -47,17 +47,18 @@ func main() {
 	matchesStore := mongorepo.NewMongoDBMatchesStore(mongoClient, "football")
 	standingsStore := mongorepo.NewMongoDBStandingsStore(mongoClient, "football")
 	teamsStore := mongorepo.NewMongoDBTeamsStore(mongoClient, "football")
-	matchesService := service.NewMatchesService(matchesStore, nil)
 	footallClient := apiClient.NewFootballAPIClient(http.DefaultClient, apiKey)
+	matchesService := service.NewMatchesService(matchesStore, footallClient)
+
 	calculator := service.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
-	// // Получаем исторические матчи (с 2025-01-01 по 2025-05-06)
-	// logrus.Info("Fetching historical matches...")
-	// historicalMatches, err := getHistoricalMatches(apiKey, mongoClient, matchesService)
-	// if err != nil {
-	// 	logrus.Warnf("Warning: Error fetching historical matches: %v", err)
-	// } else {
-	// 	logrus.Infof("Successfully fetched %d historical matches", len(historicalMatches))
-	// }
+	// Получаем исторические матчи (с 2025-01-01 по 2025-05-06)
+	logrus.Info("Fetching historical matches...")
+	historicalMatches, err := getHistoricalMatches(matchesService)
+	if err != nil {
+		logrus.Warnf("Warning: Error fetching historical matches: %v", err)
+	} else {
+		logrus.Infof("Successfully fetched %d historical matches", len(historicalMatches))
+	}
 
 	matches, err := footallClient.FetchMatches(ctx, from, to)
 	if err != nil {
@@ -87,7 +88,7 @@ func main() {
 
 // Функция для получения исторических матчей с 2025-01-01 по 2025-05-06
 func getHistoricalMatches(matchesService *service.MatchesService) ([]types.Match, error) {
-	startDate := "2024-01-01"
+	startDate := "2023-06-06"
 	endDate := "2025-07-02"
 
 	var allMatches []types.Match

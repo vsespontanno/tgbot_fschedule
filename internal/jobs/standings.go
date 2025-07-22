@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/client"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
@@ -15,12 +16,10 @@ import (
 
 // Функция, которая апдейтит турнирные таблицы в фоне, пока работает бот
 // Работает раз в 6 часов, т.к. после каждого матча таблица обновляется
-func RegisterStandingsJob(s *gocron.Scheduler, service *service.StandingsService, apiService client.StandingsApiClient) {
+func RegisterStandingsJob(s *gocron.Scheduler, service *service.StandingsService, redisClient *cache.RedisClient, apiService client.StandingsApiClient) {
 	logrus.Info("registering standings")
 	ctx := context.Background()
-	// _, err := s.Every(6).Hours().Do(func() {
-	_, err := s.Every(1).Minute().Do(func() {
-
+	_, err := s.Every(6).Hours().Do(func() {
 		log.Println("Starting standings update...")
 		start := time.Now()
 
@@ -37,6 +36,12 @@ func RegisterStandingsJob(s *gocron.Scheduler, service *service.StandingsService
 			} else {
 				log.Printf("Updated standings for %s (%d records)", leagueName, len(standings))
 			}
+		}
+		//Очищаем буфер изобрадений)
+
+		err := redisClient.DeleteByPattern(ctx, "table_image:*")
+		if err != nil {
+			log.Printf("failed to delete table images: %s", err)
 		}
 
 		log.Printf("Standings update completed in %v", time.Since(start))

@@ -19,8 +19,7 @@ func RegisterTeamsJob(s *gocron.Scheduler, service *service.TeamsService, apiSer
 	logrus.Info("registering teams")
 
 	ctx := context.Background()
-	// _, err := s.Every(24 * 10 * 30).Hours().
-	_, err := s.Every(1).Minute().Do(func() {
+	_, err := s.Every(24 * 10 * 30).Hours().Do(func() {
 		log.Println("Starting teams update...")
 		start := time.Now()
 
@@ -37,9 +36,10 @@ func RegisterTeamsJob(s *gocron.Scheduler, service *service.TeamsService, apiSer
 				if err := service.HandleUpsertMatch(context.Background(), league.CollectionName, team); err != nil {
 					log.Printf("Failed to save team for %s: %v", leagueName, err)
 				}
-
-				if err := service.HandleUpsertMatch(context.Background(), "Teams", team); err != nil {
-					log.Printf("Failed to save teams for %s: %v", leagueName, err)
+				if leagueName != "ChampionsLeague" {
+					if err := service.HandleUpsertMatch(context.Background(), "Teams", team); err != nil {
+						log.Printf("Failed to save teams for %s: %v", leagueName, err)
+					}
 				}
 			}
 		}

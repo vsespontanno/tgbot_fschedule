@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/vsespontanno/tgbot_fschedule/internal/cache"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 	"github.com/vsespontanno/tgbot_fschedule/internal/utils"
@@ -15,16 +17,16 @@ import (
 
 // GenerateTableImage создает изображение турнирной таблицы и сохраняет его в файл.
 // Если изображение есть в кэше Redis, возвращает его.
-func GenerateTableImage(data []types.Standing, filename string, redisClient *cache.RedisClient) error {
-	cacheKey := "table_image: " + filename
-	const cacheTTL = 10 * time.Minute
+func GenerateTableImage(data []types.Standing, leagueCode string, filename string, redisClient *cache.RedisClient) error {
+	cacheKey := fmt.Sprintf("table_image:%s:%s", leagueCode, filename)
+	const cacheTTL = 6 * time.Hour
 	ctx := context.Background()
 
 	// ПРоверка кеша
 	if cachedImage, err := redisClient.GetBytes(ctx, cacheKey); err == nil {
 		logrus.WithField("cache_key", cacheKey).Info("Cache hit for table image")
 		return os.WriteFile(filename, cachedImage, 0644)
-	} else if err.Error() != fmt.Sprintf("cache miss for key %s", cacheKey) {
+	} else if errors.Is(err, redis.Nil) {
 		logrus.WithField("cache_key", cacheKey).Warn("Cache error: ", err)
 	}
 
@@ -38,7 +40,7 @@ func GenerateTableImage(data []types.Standing, filename string, redisClient *cac
 	}
 	// Кэшируем пикчу
 	if err := redisClient.SetBytes(ctx, cacheKey, buf.Bytes(), cacheTTL); err != nil {
-		logrus.WithField("cache_key", cacheKey).Error("Failed to cache table image: ", err)
+		return fmt.Errorf("failed to cache table image: %w", err)
 	}
 
 	// Сохраняем изображение
@@ -53,7 +55,7 @@ func GenerateScheduleImage(matches []types.Match, filename string, redisClient *
 	} else {
 		cacheKey = "all_matches_image" + filename
 	}
-	const cacheTTL = 10 * time.Minute
+	const cacheTTL = 6 * time.Hour
 	ctx := context.Background()
 
 	// Проверяем кэш
@@ -61,7 +63,7 @@ func GenerateScheduleImage(matches []types.Match, filename string, redisClient *
 		logrus.WithField("cache_key", cacheKey).Info("Cache hit for schedule image")
 		return os.WriteFile(filename, cachedImage, 0644)
 
-	} else if err.Error() != fmt.Sprintf("cache miss for key %s", cacheKey) {
+	} else if errors.Is(err, redis.Nil) {
 		logrus.WithField("cache_key", cacheKey).Warn("Cache error: ", err)
 	}
 	buf, err := utils.ScheduleImage(matches)
@@ -71,7 +73,7 @@ func GenerateScheduleImage(matches []types.Match, filename string, redisClient *
 
 	// Кэшируем изображение
 	if err := redisClient.SetBytes(ctx, cacheKey, buf.Bytes(), cacheTTL); err != nil {
-		logrus.WithField("cache_key", cacheKey).Error("Failed to cache schedule image: ", err)
+		return fmt.Errorf("failed to cache table image: %w", err)
 	}
 	return os.WriteFile(filename, buf.Bytes(), 0644)
 

@@ -52,7 +52,7 @@ func HandleStandingsCallback(bot *tgbotapi.BotAPI, query *tgbotapi.CallbackQuery
 	imagePath := fmt.Sprintf("%s.png", league.CollectionName)
 	defer os.Remove(imagePath)
 
-	if err := GenerateTableImage(standings, imagePath, redisClient); err != nil {
+	if err := GenerateTableImage(standings, league.Code, imagePath, redisClient); err != nil {
 		return fmt.Errorf("error generating image: %w", err)
 	}
 

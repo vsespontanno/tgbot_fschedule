@@ -17,16 +17,15 @@ import (
 // Работает раз в 24 часа, можно и реже, но пока так.
 func RegisterMatchesJob(s *gocron.Scheduler, service *service.MatchesService, redisClient *cache.RedisClient, apiService client.MatchApiClient, calculator service.Calculator) {
 	logrus.Info("registering matches")
-	// _, err := s.Every(24).Hours().Do(func() {
-	_, err := s.Every(1).Minute().Do(func() {
+	_, err := s.Every(24).Hours().Do(func() {
 
 		log.Println("Starting matches update...")
 		ctx := context.Background()
 		start := time.Now()
 
-		from := "2025-05-27"
-		to := "2025-06-03"
-		matches, err := apiService.FetchMatches(ctx, from, to)
+		from := time.Now()
+		to := from.Add(24 * time.Hour)
+		matches, err := apiService.FetchMatches(ctx, from.Format("2006-01-02"), to.Format("2006-01-02"))
 		if err != nil {
 			log.Printf("Failed to fetch matches: %v", err)
 			return
@@ -47,8 +46,7 @@ func RegisterMatchesJob(s *gocron.Scheduler, service *service.MatchesService, re
 				log.Printf("Failed to upsert match: %v", err)
 			}
 		}
-		//Очищаем буфер и
-		// зображений
+		//Очищаем буфер изобрадений
 		if err := redisClient.DeleteByPattern(ctx, "top_matches_image"); err != nil {
 			log.Printf("Failed to delete top matches: %v", err)
 		}

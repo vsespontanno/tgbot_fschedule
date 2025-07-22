@@ -68,7 +68,7 @@ func (m *FootballAPIClient) FetchMatches(ctx context.Context, from, to string) (
 }
 
 func (m *FootballAPIClient) FetchStandings(ctx context.Context, leagueCode string) ([]types.Standing, error) {
-	url := fmt.Sprintf("https://api.football-data.org/v4/competitions/%s/standings?season=2024", leagueCode)
+	url := fmt.Sprintf("https://api.football-data.org/v4/competitions/%s/standings?season=2025", leagueCode)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %s", err)
