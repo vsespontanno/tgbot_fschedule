@@ -2,7 +2,6 @@ package cache
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -37,38 +36,13 @@ func NewRedisClient(redisURL string) (*RedisClient, error) {
 	return &RedisClient{client: client}, nil
 }
 
-func (c *RedisClient) Close() error {
-	return c.client.Close()
-}
-
-func (c *RedisClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	data, err := json.Marshal(value)
-	if err != nil {
-		return fmt.Errorf("failed to marshal value: %w", err)
-	}
-	return c.client.Set(ctx, key, data, expiration).Err()
-
-}
-
-func (c *RedisClient) Get(ctx context.Context, key string, value interface{}) error {
-	data, err := c.client.Get(ctx, key).Bytes()
-	if err == redis.Nil {
-		return fmt.Errorf("cache miss for key %s", key)
-	}
-	if err != nil {
-		return fmt.Errorf("failed to get from cache: %w", err)
-	}
-	return json.Unmarshal(data, value)
-}
-
-func (c *RedisClient) Delete(ctx context.Context, key string) error {
-	return c.client.Del(ctx, key).Err()
-}
-
+// SetBytes сохраняет байтовый массив в Redis с указанным временем жизни.
 func (c *RedisClient) SetBytes(ctx context.Context, key string, value []byte, expiration time.Duration) error {
 	return c.client.Set(ctx, key, value, expiration).Err()
 }
 
+// GetBytes получает байтовый массив из Redis по ключу.
+// Возвращает ошибку, если ключ не найден или произошла другая ошибка.
 func (c *RedisClient) GetBytes(ctx context.Context, key string) ([]byte, error) {
 	data, err := c.client.Get(ctx, key).Bytes()
 	if err == redis.Nil {
@@ -80,6 +54,9 @@ func (c *RedisClient) GetBytes(ctx context.Context, key string) ([]byte, error) 
 	return data, nil
 }
 
+// DeleteByPattern удаляет все ключи, соответствующие шаблону.
+// Использует SCAN для безопасного удаления ключей в больших базах данных.
+// Возвращает ошибку, если не удалось сканировать ключи или удалить их.
 func (c *RedisClient) DeleteByPattern(ctx context.Context, pattern string) error {
 	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
 	var keys []string
@@ -93,4 +70,14 @@ func (c *RedisClient) DeleteByPattern(ctx context.Context, pattern string) error
 		return nil
 	}
 	return c.client.Del(ctx, keys...).Err()
+}
+
+// Close закрывает соединение с Redis.
+// Возвращает ошибку, если не удалось закрыть соединение.
+// Используется для освобождения ресурсов при завершении работы приложения.
+func (c *RedisClient) Close() error {
+	if c.client != nil {
+		return c.client.Close()
+	}
+	return nil
 }

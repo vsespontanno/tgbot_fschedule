@@ -5,21 +5,18 @@ import (
 	"log"
 
 	"github.com/vsespontanno/tgbot_fschedule/internal/bot/keyboards"
-	"github.com/vsespontanno/tgbot_fschedule/internal/bot/response"
+	resp "github.com/vsespontanno/tgbot_fschedule/internal/bot/response"
 	"github.com/vsespontanno/tgbot_fschedule/internal/service"
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-// HandleMessage обрабатывает все входящие сообщения
+// Обрабатывает все входящие сообщения
 func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *service.UserService) error {
-	// Обрабатываем только текстовые сообщения
 	if msg.Text == "" {
 		return nil
 	}
-
-	// Обработка команд
 	switch msg.Text {
 	case "/start":
 		return handleStart(bot, msg, userService)
@@ -34,7 +31,7 @@ func HandleMessage(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *ser
 	}
 }
 
-// handleStart обрабатывает команду /start
+// Обрабатывает команду /start
 func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *service.UserService) error {
 	ctx := context.Background()
 	user := &types.User{
@@ -45,7 +42,6 @@ func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *servi
 	err := userService.SaveUser(ctx, user)
 	if err != nil {
 		log.Printf("error saving user: %v", err)
-		// можно отправить сообщение об ошибке
 		return err
 	}
 	response := "Привет! Я бот для отслеживания футбольных матчей. Доступные команды:\n" +
@@ -53,47 +49,40 @@ func handleStart(bot *tgbotapi.BotAPI, msg *tgbotapi.Message, userService *servi
 		"/table - показать турнирную таблицу\n" +
 		"/help - показать справку"
 
-	msgConfig := tgbotapi.NewMessage(msg.Chat.ID, response)
-	_, err = bot.Send(msgConfig)
-	return err
+	return resp.SendMessage(bot, msg.Chat.ID, response)
 }
 
-// handleHelp обрабатывает команду /help
+// Обрабатывает команду /help
 func handleHelp(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 	response := "Привет! Я бот для отслеживания футбольных матчей. Доступные команды:\n" +
 		"/schedule - показать расписание всех матчей\n" +
 		"/table - показать турнирную таблицу\n" +
 		"/help - показать справку"
-
-	msgConfig := tgbotapi.NewMessage(msg.Chat.ID, response)
-	_, err := bot.Send(msgConfig)
-	return err
+	return resp.SendMessage(bot, msg.Chat.ID, response)
 }
 
+// Обрабатывает команду /table
 func handleTableCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
 	text := "Выберите лигу для просмотра турнирной таблицы:"
-	err := response.SendMessageWithKeyboard(bot, message.Chat.ID, text, keyboards.KeyboardStandings)
-	return err
+	return resp.SendMessageWithKeyboard(bot, message.Chat.ID, text, keyboards.KeyboardStandings)
 }
 
+// Обрабатывает команду /schedule
 func handleScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
-	// Создаем inline-клавиатуру с двумя опциями
 	text := "Выберите тип расписания:"
-	err := response.SendMessageWithKeyboard(bot, message.Chat.ID, text, keyboards.Keyboard_Schedule)
-	return err
+	return resp.SendMessageWithKeyboard(bot, message.Chat.ID, text, keyboards.Keyboard_Schedule)
 }
 
-// handleUnknownCommand обрабатывает неизвестные команды
+// Обрабатывает неизвестные команды
+// Отправляет сообщение о том, что команда не распознана
 func handleUnknownCommand(bot *tgbotapi.BotAPI, msg *tgbotapi.Message) error {
 	response := "Неизвестная команда. Используйте /help для просмотра доступных команд."
-	msgConfig := tgbotapi.NewMessage(msg.Chat.ID, response)
-	_, err := bot.Send(msgConfig)
-	return err
+	return resp.SendMessage(bot, msg.Chat.ID, response)
 }
 
+// Обрабатывает нажатие на кнопку для получения расписания матчей в лиге на 7 дней.
+// Отправляет кнопки для выбора лиги и получает расписание матчей.
 func HandleDefaultScheduleCommand(bot *tgbotapi.BotAPI, message *tgbotapi.Message) error {
-	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите лигу для просмотра расписания:")
-	msg.ReplyMarkup = keyboards.KeyboardDefaultSchedule
-	_, err := bot.Send(msg)
-	return err
+	msg := "Выберите лигу для просмотра расписания:"
+	return resp.SendMessageWithKeyboard(bot, message.Chat.ID, msg, keyboards.KeyboardDefaultSchedule)
 }

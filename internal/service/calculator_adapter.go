@@ -30,11 +30,6 @@ func (a *CalculatorAdapter) HandleGetRecentMatches(ctx context.Context, teamID, 
 	return a.matchesStore.GetRecentMatches(ctx, teamID, lastN)
 }
 
-func (a *CalculatorAdapter) HandleGetMatches(ctx context.Context) ([]types.Match, error) {
-	return a.matchesStore.GetMatches(ctx, "matches")
-
-}
-
 func (a *CalculatorAdapter) HandleGetLeague(ctx context.Context, collectionName string, id int) (string, error) {
 	league, err := a.teamsStore.GetTeamLeague(ctx, collectionName, id)
 	if err != nil {

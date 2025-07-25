@@ -10,27 +10,26 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// интерфейс для взаимодействия с данными матчей и команд
+// Интерфейс для взаимодействия с данными турнирных таблиц
 type StandingsStore interface {
 	GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error)
 	SaveStandings(ctx context.Context, collectionName string, standings []types.Standing) error
 }
 
+// Интерфейс для взаимодействия с данными турнирных таблиц в контексте калькуляции рейтинга матчей
 type StandingsCalcStore interface {
 	GetTeamStanding(ctx context.Context, collectionName string, id int) (int, error)
 }
 
-// структура для взаимодействия с данными матчей и команд
+// Структура для взаимодействия с данными турнирных таблиц
 type MongoDBStandingsStore struct {
 	dbName string
 	client *mongo.Client
 }
 
-// функция для создания новой структуры для взаимодействия с данными матчей и команд
+// Конструктор структуры для взаимодействия с данными турнирных таблиц
 // client - клиент MongoDB
 // dbName - имя базы данных
-// возвращает *MongoDBMatchesStore
-
 func NewMongoDBStandingsStore(client *mongo.Client, dbName string) *MongoDBStandingsStore {
 	return &MongoDBStandingsStore{
 		client: client,
@@ -38,7 +37,7 @@ func NewMongoDBStandingsStore(client *mongo.Client, dbName string) *MongoDBStand
 	}
 }
 
-// функция для получения таблицы из MONGODB
+// Метод для получения турнирных таблиц из MONGODB
 func (m *MongoDBStandingsStore) GetStandings(ctx context.Context, collectionName string) ([]types.Standing, error) {
 	var standings []types.Standing
 	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
@@ -62,15 +61,9 @@ func (m *MongoDBStandingsStore) GetStandings(ctx context.Context, collectionName
 	return standings, nil
 }
 
-// функция для сохранения таблицы в MONGODB
+// Метод для для сохранения турнирных таблиц в MONGODB
 func (m *MongoDBStandingsStore) SaveStandings(ctx context.Context, collectionName string, standings []types.Standing) error {
 	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
-
-	// Clear existing standings
-	_, err := collection.DeleteMany(ctx, map[string]interface{}{})
-	if err != nil {
-		return err
-	}
 
 	// Insert new standings
 	documents := make([]interface{}, len(standings))
@@ -78,15 +71,13 @@ func (m *MongoDBStandingsStore) SaveStandings(ctx context.Context, collectionNam
 		documents[i] = standing
 	}
 
-	_, err = collection.InsertMany(ctx, documents)
+	_, err := collection.InsertMany(ctx, documents)
 	return err
 }
 
+// Метод для получения турнирной таблицы из MONGODB
 func (m *MongoDBStandingsStore) GetTeamStanding(ctx context.Context, collectionName string, id int) (int, error) {
-	fullCollectionName := collectionName + "_standings"
-	collection := m.client.Database(m.dbName).Collection(fullCollectionName)
-
-	// Добавлено логирование для отладки
+	collection := m.client.Database(m.dbName).Collection(collectionName + "_standings")
 
 	var standing types.Standing
 	filter := bson.M{"team.id": id}

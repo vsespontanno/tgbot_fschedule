@@ -22,14 +22,6 @@ func NewMatchesService(matchesStore db.MatchesStore, apiClient client.MatchApiCl
 	}
 }
 
-func (s *MatchesService) HandleGetMatches(ctx context.Context) ([]types.Match, error) {
-	matches, err := s.matchesStore.GetMatches(ctx, "matches")
-	if err != nil {
-		return nil, err
-	}
-	return matches, nil
-}
-
 func (s *MatchesService) HandleSaveMatches(matches []types.Match, from, to string) error {
 	err := s.matchesStore.SaveMatchesToMongoDB(matches, from, to)
 	if err != nil {
@@ -104,4 +96,9 @@ func (s *MatchesService) CalculateRatingOfMatch(ctx context.Context, match types
 	}
 
 	return rating, nil
+}
+
+func (s *MatchesService) HandleGetMatchesForPeriod(ctx context.Context, league, from, to string) ([]types.Match, error) {
+	return s.matchesStore.GetMatchesInPeriod(ctx, league, from, to)
+
 }

@@ -44,7 +44,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	matchesStore := mongorepo.NewMongoDBMatchesStore(mongoClient, "football")
+	matchesStore := mongorepo.NewMongoDBMatchesStore(mongoClient, "football", "matches")
 	standingsStore := mongorepo.NewMongoDBStandingsStore(mongoClient, "football")
 	teamsStore := mongorepo.NewMongoDBTeamsStore(mongoClient, "football")
 	footallClient := apiClient.NewFootballAPIClient(http.DefaultClient, apiKey)

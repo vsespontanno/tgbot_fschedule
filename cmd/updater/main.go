@@ -20,7 +20,13 @@ import (
 	"github.com/go-co-op/gocron"
 )
 
+// Точка входу в программу апдейта данных
+// Здесь мы инициализируем все необходимые подключения, сервисы и планировщик задач
+// После инициализации запускаем планировщик задач, который будет обновлять данные в
+// фоновом режиме. Также мы обрабатываем сигналы завершения, чтобы корректно остановить
+// планировщик и освободить ресурсы.
 func main() {
+	// Загрузка конфигурации
 	cfg := config.LoadConfig()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -33,9 +39,13 @@ func main() {
 	defer mongoClient.Disconnect(ctx)
 
 	apiClient := client.NewFootballAPIClient(&http.Client{}, cfg.FootballDataAPIKey)
-
+	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	defer redisClient.Close()
 	// Инициализация сервисов
-	matchesStore := mongodb.NewMongoDBMatchesStore(mongoClient, "football")
+	matchesStore := mongodb.NewMongoDBMatchesStore(mongoClient, "football", "matches")
 	standingsStore := mongodb.NewMongoDBStandingsStore(mongoClient, "football")
 	teamsStore := mongodb.NewMongoDBTeamsStore(mongoClient, "football")
 
@@ -43,11 +53,6 @@ func main() {
 	standingsService := service.NewStandingService(standingsStore)
 	teamsService := service.NewTeamsService(teamsStore)
 	calculator := service.NewCalculatorAdapter(teamsStore, standingsStore, matchesStore)
-
-	redisClient, err := cache.NewRedisClient(cfg.RedisURL)
-	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
 
 	// Создаем планировщик
 	scheduler := gocron.NewScheduler(time.UTC)

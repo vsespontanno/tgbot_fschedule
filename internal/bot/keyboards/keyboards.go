@@ -8,30 +8,32 @@ import (
 
 var (
 
-	// создание мапы для выбора таблицы
+	// Мапа для выбора лиги для турнирной таблицы на основе нажатой кнопки
 	KeyboardsStandings = map[string]types.League{
-		"standings_APL":        types.Leagues["PremierLeague"],
+		"standings_EPL":        types.Leagues["PremierLeague"],
 		"standings_LaLiga":     types.Leagues["LaLiga"],
 		"standings_Bundesliga": types.Leagues["Bundesliga"],
 		"standings_SerieA":     types.Leagues["SerieA"],
 		"standings_Ligue1":     types.Leagues["Ligue1"],
 		"standings_CL":         types.Leagues["ChampionsLeague"],
 	}
+
+	// Мапа для выбора лиги для расписания матчей на основе нажатой кнопки
 	KeyboardsSchedule = map[string]types.League{
-		"schedule_laliga":     types.Leagues["LaLiga"],
-		"schedule_epl":        types.Leagues["PremierLeague"],
-		"schedule_primeira":   types.Leagues["Primeira"],
-		"schedule_eredivisie": types.Leagues["Eredivisie"],
-		"schedule_bundesliga": types.Leagues["Bundesliga"],
-		"schedule_seriea":     types.Leagues["SerieA"],
-		"schedule_ucl":        types.Leagues["ChampionsLeague"],
-		"schedule_uel":        types.Leagues["EuropaLeague"],
+		"schedule_LaLiga":     types.Leagues["LaLiga"],
+		"schedule_EPL":        types.Leagues["PremierLeague"],
+		"schedule_Primeira":   types.Leagues["Primeira"],
+		"schedule_Eredivisie": types.Leagues["Eredivisie"],
+		"schedule_Bundesliga": types.Leagues["Bundesliga"],
+		"schedule_SerieA":     types.Leagues["SerieA"],
+		"schedule_UCL":        types.Leagues["ChampionsLeague"],
+		"schedule_UEL":        types.Leagues["EuropaLeague"],
 	}
 
-	// создание клавиатуры для выбора таблицы
+	// Инлайн-клавиатура для выбора лиг для турнирной таблицы
 	KeyboardStandings = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("APL", "standings_APL"),
+			tgbotapi.NewInlineKeyboardButtonData("EPL", "standings_EPL"),
 			tgbotapi.NewInlineKeyboardButtonData("La Liga", "standings_LaLiga"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
@@ -43,22 +45,24 @@ var (
 			tgbotapi.NewInlineKeyboardButtonData("Champions League", "standings_CL"),
 		),
 	)
+
+	// Инлайн-клавиатура для выбора лиг
 	KeyboardDefaultSchedule = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("La Liga", "schedule_laliga"),
-			tgbotapi.NewInlineKeyboardButtonData("EPL", "schedule_epl"),
+			tgbotapi.NewInlineKeyboardButtonData("La Liga", "schedule_LaLiga"),
+			tgbotapi.NewInlineKeyboardButtonData("EPL", "schedule_EPL"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Primeira", "schedule_primeira"),
-			tgbotapi.NewInlineKeyboardButtonData("Eredivisie", "schedule_eredivisie"),
+			tgbotapi.NewInlineKeyboardButtonData("Primeira", "schedule_Primeira"),
+			tgbotapi.NewInlineKeyboardButtonData("Eredivisie", "schedule_Eredivisie"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Bundesliga", "schedule_bundesliga"),
-			tgbotapi.NewInlineKeyboardButtonData("Serie A", "schedule_seriea"),
+			tgbotapi.NewInlineKeyboardButtonData("Bundesliga", "schedule_Bundesliga"),
+			tgbotapi.NewInlineKeyboardButtonData("Serie A", "schedule_SerieA"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("UCL", "schedule_ucl"),
-			tgbotapi.NewInlineKeyboardButtonData("UEL", "schedule_uel"),
+			tgbotapi.NewInlineKeyboardButtonData("UCL", "schedule_UCL"),
+			tgbotapi.NewInlineKeyboardButtonData("UEL", "schedule_UEL"),
 		),
 	)
 	Keyboard_Schedule = tgbotapi.NewInlineKeyboardMarkup(

@@ -58,14 +58,6 @@ func GenerateScheduleImage(matches []types.Match, filename string, redisClient *
 	const cacheTTL = 6 * time.Hour
 	ctx := context.Background()
 
-	// Проверяем кэш
-	if cachedImage, err := redisClient.GetBytes(ctx, cacheKey); err == nil {
-		logrus.WithField("cache_key", cacheKey).Info("Cache hit for schedule image")
-		return os.WriteFile(filename, cachedImage, 0644)
-
-	} else if errors.Is(err, redis.Nil) {
-		logrus.WithField("cache_key", cacheKey).Warn("Cache error: ", err)
-	}
 	buf, err := utils.ScheduleImage(matches)
 	if err != nil {
 		return fmt.Errorf("failed to generate table image: %s", err)

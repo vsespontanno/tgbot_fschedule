@@ -51,7 +51,7 @@ func Start() error {
 	defer redisClient.Close()
 
 	// Initialize stores and services
-	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football")
+	matchesStore := mongoRepo.NewMongoDBMatchesStore(mongoClient, "football", "matches")
 	standingsStore := mongoRepo.NewMongoDBStandingsStore(mongoClient, "football")
 	userStore := pgRepo.NewPGUserStore(pg)
 

@@ -12,60 +12,66 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// интерфейс для взаимодействия с данными матчей и команд
+// Интерфейс для взаимодействия с данными матчей
 type MatchesStore interface {
-	GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
+	// GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
+	GetMatchesInPeriod(ctx context.Context, league, from, to string) ([]types.Match, error)
 	SaveMatchesToMongoDB(matches []types.Match, from, to string) error
 	UpdateMatchRatingInMongoDB(match types.Match, rating float64) error
 	UpsertMatch(ctx context.Context, match types.Match) error
 }
 
+// Интерфейс для взаимодействия с данными матчей в контексте калькуляции рейтинга матчей
 type MatchCalcStore interface {
-	GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
 	GetRecentMatches(ctx context.Context, teamID int, lastN int) ([]types.Match, error)
+	GetMatchesInPeriod(ctx context.Context, league string, from, to string) ([]types.Match, error)
 }
 
-// структура для взаимодействия с данными матчей и команд
+// Структура для взаимодействия с данными матчей и команд
 type MongoDBMatchesStore struct {
-	dbName string
-	client *mongo.Client
+	dbName   string
+	client   *mongo.Client
+	collName string
 }
 
-func NewMongoDBMatchesStore(client *mongo.Client, dbName string) *MongoDBMatchesStore {
+// Конструктор структуры для взаимодействия с данными матчей и команд
+func NewMongoDBMatchesStore(client *mongo.Client, dbName string, collName string) *MongoDBMatchesStore {
 	return &MongoDBMatchesStore{
-		client: client,
-		dbName: dbName,
+		client:   client,
+		dbName:   dbName,
+		collName: collName,
 	}
 }
 
-// функция для поиска документов в MONGODB
-func (m *MongoDBMatchesStore) findDocuments(ctx context.Context, collectionName string, result interface{}) error {
-	collection := m.client.Database(m.dbName).Collection(collectionName)
+// Общий метод для поиска документов в MONGODB
+func (m *MongoDBMatchesStore) findDocuments(ctx context.Context, result interface{}) error {
+	collection := m.client.Database(m.dbName).Collection(m.collName)
 
 	cursor, err := collection.Find(ctx, bson.M{})
 	if err != nil {
-		return fmt.Errorf("error finding documents in collection %s: %w", collectionName, err)
+		return fmt.Errorf("error finding documents in collection %s: %w", m.collName, err)
 	}
 	defer cursor.Close(ctx)
 
 	if err := cursor.All(ctx, result); err != nil {
-		return fmt.Errorf("error decoding documents in collection %s: %w", collectionName, err)
+		return fmt.Errorf("error decoding documents in collection %s: %w", m.collName, err)
 	}
 
 	return nil
 }
 
-// функция для получения матчей из MONGODB
-func (m *MongoDBMatchesStore) GetMatches(ctx context.Context, collectionName string) ([]types.Match, error) {
+// Метод для получения всех матчей из MONGODB
+func (m *MongoDBMatchesStore) GetMatches(ctx context.Context) ([]types.Match, error) {
 	var matches []types.Match
-	if err := m.findDocuments(ctx, collectionName, &matches); err != nil {
+	if err := m.findDocuments(ctx, &matches); err != nil {
 		return nil, err
 	}
 	return matches, nil
 }
 
+// Метод для получения последнтх матчей той или иной команды из MONGODB
 func (m *MongoDBMatchesStore) GetRecentMatches(ctx context.Context, teamID int, lastN int) ([]types.Match, error) {
-	collection := m.client.Database(m.dbName).Collection("matches")
+	collection := m.client.Database(m.dbName).Collection(m.collName)
 	filter := bson.M{
 		"$or": []bson.M{
 			{"homeTeam.id": teamID},
@@ -86,13 +92,14 @@ func (m *MongoDBMatchesStore) GetRecentMatches(ctx context.Context, teamID int, 
 	return matches, err
 }
 
+// Метод для сохранения матчей в базу MongoDb
 func (m *MongoDBMatchesStore) SaveMatchesToMongoDB(matches []types.Match, from, to string) error {
 	if len(matches) == 0 {
 		logrus.Infof("No matches found from %s to %s\n", from, to)
 		return nil
 	}
 
-	collection := m.client.Database("football").Collection("matches")
+	collection := m.client.Database(m.dbName).Collection(m.collName)
 
 	var documents []interface{}
 	for _, match := range matches {
@@ -107,8 +114,9 @@ func (m *MongoDBMatchesStore) SaveMatchesToMongoDB(matches []types.Match, from, 
 	return nil
 }
 
+// Метод для обновления рейтинга матча в базе MongoDB
 func (m *MongoDBMatchesStore) UpdateMatchRatingInMongoDB(match types.Match, rating float64) error {
-	collection := m.client.Database("football").Collection("matches")
+	collection := m.client.Database(m.dbName).Collection(m.collName)
 
 	filter := bson.M{"id": match.ID}
 	update := bson.M{"$set": bson.M{"rating": rating}}
@@ -121,11 +129,50 @@ func (m *MongoDBMatchesStore) UpdateMatchRatingInMongoDB(match types.Match, rati
 	return nil
 }
 
+// Метод для обновления матчей в базе MongoDB, дабы при обновлении в фоне не было дубликатов
 func (m *MongoDBMatchesStore) UpsertMatch(ctx context.Context, match types.Match) error {
-	collection := m.client.Database("football").Collection("matches")
+	collection := m.client.Database(m.dbName).Collection(m.collName)
 	filter := bson.M{"id": match.ID}
 	update := bson.M{"$set": match}
 	opts := options.Update().SetUpsert(true)
 	_, err := collection.UpdateOne(ctx, filter, update, opts)
 	return err
+}
+
+// Метод для получения всех матчей за тот или иной период
+func (m *MongoDBMatchesStore) GetMatchesInPeriod(ctx context.Context, league, from, to string) ([]types.Match, error) {
+	coll := m.client.Database(m.dbName).Collection(m.collName)
+	var (
+		matches []types.Match
+		filter  bson.M
+	)
+	if league == "" {
+		filter = bson.M{
+			"utcdate": bson.M{
+				"$gte": from + "T00:00:00Z",
+				"$lte": to + "T23:59:59Z",
+			},
+		}
+	} else {
+		filter = bson.M{
+			"$and": []bson.M{
+				{"utcdate": bson.M{
+					"$gte": from + "T00:00:00Z",
+					"$lte": to + "T23:59:59Z",
+				}},
+				{"competition.name": league},
+			},
+		}
+	}
+
+	cur, err := coll.Find(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("error finding matches in period for league %s: %w", league, err)
+	}
+	defer cur.Close(ctx)
+
+	if err := cur.All(ctx, &matches); err != nil {
+		return nil, fmt.Errorf("error decoding matches in period for league %s: %w", league, err)
+	}
+	return matches, nil
 }
