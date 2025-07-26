@@ -66,7 +66,7 @@ docker-compose up --build
 #### Остановка сервисов
 
 ```
-docker-compose down   `
+docker-compose down
 ```
 ### 4. Локальная разработка (опционально)
 
