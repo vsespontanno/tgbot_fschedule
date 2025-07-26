@@ -14,7 +14,6 @@ import (
 
 // Интерфейс для взаимодействия с данными матчей
 type MatchesStore interface {
-	// GetMatches(ctx context.Context, collectionName string) ([]types.Match, error)
 	GetMatchesInPeriod(ctx context.Context, league, from, to string) ([]types.Match, error)
 	SaveMatchesToMongoDB(matches []types.Match, from, to string) error
 	UpdateMatchRatingInMongoDB(match types.Match, rating float64) error

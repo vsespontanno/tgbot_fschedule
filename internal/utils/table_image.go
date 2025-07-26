@@ -10,6 +10,9 @@ import (
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
+// TableImage создает изображение турнирной таблицы
+// Использует библиотеку gg для рисования на изображении
+// Возвращает буфер с изображением или ошибку, если что-то пошло не так
 func TableImage(data []types.Standing) (*bytes.Buffer, error) {
 	// Константы
 	const (

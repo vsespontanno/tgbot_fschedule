@@ -39,6 +39,7 @@ func GetLeaguesForTeams(ctx context.Context, calculator Calculator, homeTeamID i
 
 }
 
+// CalculatePositionOfTeams вычисляет рейтинг команд на основе их позиций в лиге
 func CalculatePositionOfTeams(ctx context.Context, calculator Calculator, match types.Match) (homeTeam, awayTeam float64, err error) {
 	HomeID := match.HomeTeam.ID
 	AwayID := match.AwayTeam.ID
@@ -64,6 +65,9 @@ func CalculatePositionOfTeams(ctx context.Context, calculator Calculator, match 
 	return homeTeamRating, awayTeamRating, nil
 }
 
+// GetDerbyBonus вычисляет бонус за дерби между командами
+// Использует короткие названия команд для поиска в словаре дерби
+// Если бонус не найден, возвращает 0
 func GetDerbyBonus(ctx context.Context, calculator Calculator, match types.Match) float64 {
 	homeLeague, awayLeague, err := GetLeaguesForTeams(ctx, calculator, match.HomeTeam.ID, match.AwayTeam.ID)
 	if err != nil {

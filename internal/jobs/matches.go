@@ -14,7 +14,10 @@ import (
 )
 
 // Функция, которая апдейтит матче в фоне, пока работает бот
-// Работает раз в 24 часа, можно и реже, но пока так.
+// Используется gocron для планирования задач
+// Каждые 24 часа выполняет обновление матчей
+// Получает матчи из API, рассчитывает рейтинг и сохраняет в базу данных
+// Очищает кэш Redis для топовых матчей и всех матчей после обновления
 func RegisterMatchesJob(s *gocron.Scheduler, service *service.MatchesService, redisClient *cache.RedisClient, apiService client.MatchApiClient, calculator service.Calculator) {
 	logrus.Info("registering matches")
 	_, err := s.Every(24).Hours().Do(func() {

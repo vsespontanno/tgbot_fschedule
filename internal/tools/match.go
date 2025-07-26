@@ -2,6 +2,8 @@ package tools
 
 import "github.com/vsespontanno/tgbot_fschedule/internal/types"
 
+// MatchFilter фильтрует матчи, заменяя длинные названия команд и лиг на короткие
+// И оставляя только матчи из определенных лиг
 func MatchFilter(MatchesResponse types.MatchesResponse) []types.Match {
 	for i, match := range MatchesResponse.Matches {
 		switch match.HomeTeam.Name {

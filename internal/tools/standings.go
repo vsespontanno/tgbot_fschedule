@@ -2,6 +2,7 @@ package tools
 
 import "github.com/vsespontanno/tgbot_fschedule/internal/types"
 
+// StandingsFilter фильтрует турнирные таблицы, заменяя длинные названия команд на короткие
 func StandingsFilter(standings []types.Standing) {
 	for i := range standings {
 		switch standings[i].Team.Name {

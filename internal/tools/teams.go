@@ -2,6 +2,7 @@ package tools
 
 import "github.com/vsespontanno/tgbot_fschedule/internal/types"
 
+// TeamsFilter фильтрует команды, заменяя длинные названия на короткие
 func TeamsFilter(teams types.TeamsResponse) {
 	for i := range teams.Teams {
 		switch teams.Teams[i].Name {

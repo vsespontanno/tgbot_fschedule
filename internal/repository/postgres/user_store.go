@@ -12,23 +12,28 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
+// Интерфейс для работы с пользователями в PostgreSQL
 type UserStore interface {
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (*types.User, error)
 	SaveUser(ctx context.Context, user *types.User) error
 }
 
+// PGUserStore реализует интерфейс UserStore для работы с пользователями в PostgreSQL
 type PGUserStore struct {
 	db      *sql.DB
 	builder sq.StatementBuilderType
 }
 
-func NewPGUserStore(db *sql.DB) *PGUserStore {
+// NewPGUserStore создает новый экземпляр PGUserStore
+func NewPGUserStore(db *sql.DB) UserStore {
 	return &PGUserStore{
 		db:      db,
 		builder: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
 	}
 }
 
+// GetUserByTelegramID получает пользователя по его Telegram ID
+// Возвращает указатель на пользователя или ошибку, если пользователь не найден
 func (s *PGUserStore) GetUserByTelegramID(ctx context.Context, telegramID int64) (*types.User, error) {
 	query := s.builder.Select("id", "telegram_id", "username", "created_at").
 		From("users").
@@ -52,6 +57,10 @@ func (s *PGUserStore) GetUserByTelegramID(ctx context.Context, telegramID int64)
 	return &user, nil
 }
 
+// SaveUser сохраняет пользователя в базе данных
+// Если пользователь с таким Telegram ID уже существует, ничего не делает
+// Если пользователь не существует, выполняет вставку нового пользователя
+// Возвращает ошибку, если не удалось выполнить вставку
 func (s *PGUserStore) SaveUser(ctx context.Context, user *types.User) error {
 	// Проверка существования пользователя по telegram_id
 	var exists bool

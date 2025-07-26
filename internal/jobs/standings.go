@@ -15,7 +15,10 @@ import (
 )
 
 // Функция, которая апдейтит турнирные таблицы в фоне, пока работает бот
-// Работает раз в 6 часов, т.к. после каждого матча таблица обновляется
+// Используется gocron для планирования задач
+// Каждые 6 часов выполняет обновление турнирных таблиц
+// Получает таблицы из API и сохраняет в базу данных
+// Очищает кэш Redis для изображений таблиц после обновления
 func RegisterStandingsJob(s *gocron.Scheduler, service *service.StandingsService, redisClient *cache.RedisClient, apiService client.StandingsApiClient) {
 	logrus.Info("registering standings")
 	ctx := context.Background()

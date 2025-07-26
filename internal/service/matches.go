@@ -10,11 +10,13 @@ import (
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
+// MatchesService предоставляет методы для работы с матчами
 type MatchesService struct {
 	matchesStore db.MatchesStore
 	apiClient    client.MatchApiClient
 }
 
+// Конструктор для создания нового экземпляра MatchesService
 func NewMatchesService(matchesStore db.MatchesStore, apiClient client.MatchApiClient) *MatchesService {
 	return &MatchesService{
 		matchesStore: matchesStore,
@@ -22,6 +24,7 @@ func NewMatchesService(matchesStore db.MatchesStore, apiClient client.MatchApiCl
 	}
 }
 
+// Метод для сохранения матчей в базу MongoDB
 func (s *MatchesService) HandleSaveMatches(matches []types.Match, from, to string) error {
 	err := s.matchesStore.SaveMatchesToMongoDB(matches, from, to)
 	if err != nil {
@@ -30,18 +33,23 @@ func (s *MatchesService) HandleSaveMatches(matches []types.Match, from, to strin
 	return nil
 }
 
+// Метод для получения матчей из API
 func (s *MatchesService) HandleReqMatches(ctx context.Context, from string, to string) ([]types.Match, error) {
 	return s.apiClient.FetchMatches(ctx, from, to)
 }
 
+// Метод для обновления рейтинга матча в базе MongoDB
 func (s *MatchesService) HandleSaveMatchRating(ctx context.Context, match types.Match, rating float64) error {
 	return s.matchesStore.UpdateMatchRatingInMongoDB(match, rating)
 }
 
+// Метод для обновления матчей в базе MongoDB, дабы при обновлении в фоне не было дубликатов
 func (s *MatchesService) HandleUpsertMatch(ctx context.Context, match types.Match) error {
 	return s.matchesStore.UpsertMatch(ctx, match)
 }
 
+// Метод для расчёта рейтинга матча
+// Использует калькулятор для получения необходимых данных и расчёта рейтинга
 func (s *MatchesService) CalculateRatingOfMatch(ctx context.Context, match types.Match, calculator Calculator) (float64, error) {
 	// 1) Сила команд по позициям
 	homeStrength, awayStrength, err := CalculatePositionOfTeams(ctx, calculator, match)
@@ -98,6 +106,7 @@ func (s *MatchesService) CalculateRatingOfMatch(ctx context.Context, match types
 	return rating, nil
 }
 
+// Метод для получения всех матчей за тот или иной период
 func (s *MatchesService) HandleGetMatchesForPeriod(ctx context.Context, league, from, to string) ([]types.Match, error) {
 	return s.matchesStore.GetMatchesInPeriod(ctx, league, from, to)
 

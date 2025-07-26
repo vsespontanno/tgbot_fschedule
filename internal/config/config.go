@@ -7,6 +7,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Config структура для хранения конфигурации приложения
+// Содержит ключи API, параметры подключения к базам данных и другие настройки
+// Используется для загрузки переменных окружения из .env файла
 type Config struct {
 	TelegramToken      string
 	FootballDataAPIKey string
@@ -19,6 +22,10 @@ type Config struct {
 	RedisURL           string
 }
 
+// LoadConfig функция для загрузки конфигурации из .env файла
+// Использует пакет godotenv для чтения переменных окружения
+// Возвращает указатель на Config с заполненными полями
+// Если не удается загрузить .env файл, выводит ошибку в лог
 func LoadConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {

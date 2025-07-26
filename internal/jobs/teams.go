@@ -14,7 +14,7 @@ import (
 
 // Функция, которая апдейтит матче в фоне, пока работает бот
 // Работает раз в 300 дней, т.к. команды меняются только после конца сезона:
-// Команды с нисших дивизионов попадают в дивизионы повыше и наоборот
+// команды с низших дивизионов попадают в дивизионы повыше и наоборот
 func RegisterTeamsJob(s *gocron.Scheduler, service *service.TeamsService, apiService client.TeamsApiClient) {
 	logrus.Info("registering teams")
 

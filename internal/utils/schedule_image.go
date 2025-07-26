@@ -10,6 +10,9 @@ import (
 	"github.com/vsespontanno/tgbot_fschedule/internal/types"
 )
 
+// ScheduleImage создает изображение расписания матчей
+// Использует библиотеку gg для рисования на изображении
+// Возвращает буфер с изображением или ошибку, если что-то пошло не
 func ScheduleImage(matches []types.Match) (*bytes.Buffer, error) {
 	const (
 		width        = 780

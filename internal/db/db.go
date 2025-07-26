@@ -14,10 +14,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// функция для подключения к MongoDB
-// uri - строка подключения к MongoDB
-// возвращает *mongo.Client и ошибку
-
+// ConnectToMongoDB создает подключение к MongoDB и возвращает клиент
+// Принимает строку подключения в формате MongoDB URI
+// Возвращает указатель на mongo.Client и ошибку, если есть
 func ConnectToMongoDB(uri string) (*mongo.Client, error) {
 	clientOptions := options.Client().ApplyURI(uri)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
@@ -42,6 +41,11 @@ func ConnectToMongoDB(uri string) (*mongo.Client, error) {
 	return client, nil
 }
 
+// createMatchesIndexes создает индекс на коллекции матчей в MongoDB
+// Индекс включает поля homeTeam.id, awayTeam.id и date для ускорения запросов
+// Принимает указатель на mongo.Client и имя базы данных
+// Возвращает ошибку, если не удалось создать индекс
+// Использует контекст с таймаутом 10 секунд для создания индекса
 func createMatchesIndexes(client *mongo.Client, dbName string) error {
 	collection := client.Database(dbName).Collection("matches")
 	index := mongo.IndexModel{
@@ -62,6 +66,8 @@ func createMatchesIndexes(client *mongo.Client, dbName string) error {
 	return nil
 }
 
+// ConnectToPostgres создает подключение к PostgreSQL и возвращает указатель на sql.DB
+// Принимает параметры подключения: пользователь, пароль, имя базы данных, хост и порт
 func ConnectToPostgres(user, password, dbname, host, port string) (*sql.DB, error) {
 	// Формируем строку подключения
 	connStr := fmt.Sprintf("user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",

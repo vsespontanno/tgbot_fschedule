@@ -11,11 +11,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// Интерфейс для взаимодействия с данными команд
 type TeamsStore interface {
 	SaveTeamsToMongoDB(ctx context.Context, collectionName string, teams []types.Team) error
 	UpsertTeamToMongoDB(ctx context.Context, collectionName string, teams types.Team) error
 }
 
+// Интерфейс для взаимодействия с данными команд в контексте калькуляции рейтинга матчей
 type TeamsCalcStore interface {
 	GetTeamLeague(ctx context.Context, collectionName string, id int) (string, error)
 	GetTeamsShortName(ctx context.Context, collectionName string, fullName string) (string, error)
